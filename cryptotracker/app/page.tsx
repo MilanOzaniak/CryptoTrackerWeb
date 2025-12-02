@@ -8,8 +8,16 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    setLoggedIn(!!token);
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        const data = await res.json();
+        setLoggedIn(!!data.loggedIn);
+      } catch {
+        setLoggedIn(false);
+      }
+    }
+    checkAuth();
   }, []);
 
   function goLogin() {
@@ -21,8 +29,6 @@ export default function Home() {
   }
 
   function logout() {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
     setLoggedIn(false);
     router.refresh();
   }
