@@ -28,9 +28,15 @@ export default function Home() {
     router.push("/register");
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (err) {
+      console.error("Logout request failed", err);
+    }
+    localStorage.removeItem("user");
     setLoggedIn(false);
-    router.refresh();
+    router.push("/");
   }
 
   if (loggedIn === null) {
