@@ -141,13 +141,13 @@ export default function RegisterPage() {
           </div>
 
           <div className="buttonContainer">
-            <button className="buttonLogin" type="submit" disabled={submitting}>
+            <button className="button" type="submit" disabled={submitting}>
               {submitting ? "Registering..." : "Registrovať"}
             </button>
             <button
               type="button"
               onClick={() => router.push("/login")}
-              className="buttonLinkLogin"
+              className="buttonLink"
             >
               Prihlásiť sa
             </button>

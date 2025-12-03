@@ -89,14 +89,14 @@ export default function LoginPage() {
           {errors.password && <div className="err">{errors.password}</div>}
 
           <div className="buttonContainer">
-            <button className="buttonLogin" type="submit" disabled={submitting}>
+            <button className="button" type="submit" disabled={submitting}>
               {submitting ? "Prihlasovanie..." : "Prihlásiť sa"}
             </button>
 
             <button
               type="button"
               onClick={() => router.push("/register")}
-              className="buttonLinkLogin"
+              className="buttonLink"
             >
               Registrovať
             </button>
