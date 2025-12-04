@@ -141,7 +141,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="buttonContainer">
-            <button className="button" type="submit" disabled={submitting}>
+            <button className="buttonNormal" type="submit" disabled={submitting}>
               {submitting ? "Registering..." : "Registrovať"}
             </button>
             <button
