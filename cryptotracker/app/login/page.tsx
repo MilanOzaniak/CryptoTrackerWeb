@@ -89,7 +89,7 @@ export default function LoginPage() {
           {errors.password && <div className="err">{errors.password}</div>}
 
           <div className="buttonContainer">
-            <button className="button" type="submit" disabled={submitting}>
+            <button className="buttonNormal" type="submit" disabled={submitting}>
               {submitting ? "Prihlasovanie..." : "Prihlásiť sa"}
             </button>
 
