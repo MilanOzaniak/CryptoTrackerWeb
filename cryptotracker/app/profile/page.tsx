@@ -74,7 +74,6 @@ export default function ProfilePage() {
     load();
   }, [router]);
 
-  // fetch all users if current user is admin
   useEffect(() => {
     if (!user || user.role !== "admin") return;
 
@@ -200,9 +199,33 @@ export default function ProfilePage() {
           >
             Zmeniť heslo
           </button>
+
+          <button
+            className="buttonDanger"
+            onClick={async () => {
+              if (!confirm("Naozaj chcete zablokovať svoj účet?")) return;
+              try {
+                const res = await fetch(`/api/users/${user.user_id}/disable`, {
+                  method: "POST",
+                  credentials: "include",
+                });
+                if (res.ok) {
+                  alert("Účet zablokovaný");
+                  localStorage.removeItem("user");
+                  router.push("/login");
+                } else {
+                  const data = await res.json();
+                  alert(data?.error || "Chyba");
+                }
+              } catch (err) {
+                alert("Sieťová chyba");
+              }
+            }}
+          >
+            Zablokovať účet
+          </button>
         </div>
 
-        {/* password form toggles under profile card */}
         {showPasswordForm && (
           <form onSubmit={submitPasswordChange} style={styles.passwordCard}>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -268,6 +291,7 @@ export default function ProfilePage() {
               <div style={styles.tableCell}>Rola</div>
               <div style={styles.tableCell}>Mena</div>
               <div style={styles.tableCell}>Registrovaný</div>
+              <div style={styles.tableCell}>Akcie</div>
             </div>
 
             {users.map((u) => (
@@ -277,6 +301,55 @@ export default function ProfilePage() {
                 <div style={styles.tableCell}>{u.role}</div>
                 <div style={styles.tableCell}>{u.p_currency ?? "USD"}</div>
                 <div style={styles.tableCell}>{u.created_at ? new Date(u.created_at).toLocaleDateString() : "-"}</div>
+                <div style={{ ...styles.tableCell, display: "flex", gap: 6 }}>
+                  <button
+                    className="buttonSmallDanger"
+                    onClick={async () => {
+                      if (!confirm(`Zablokovať účet ${u.email}?`)) return;
+                      try {
+                        const res = await fetch(`/api/users/${u.user_id}/disable`, {
+                          method: "POST",
+                          credentials: "include",
+                        });
+                        if (res.ok) {
+                          alert("Účet zablokovaný");
+                          window.location.reload();
+                        } else {
+                          const data = await res.json();
+                          alert(data?.error || "Chyba");
+                        }
+                      } catch (err) {
+                        alert("Sieťová chyba");
+                      }
+                    }}
+                  >
+                    Zablokovať
+                  </button>
+                  
+                  <button
+                    className="buttonSmallDanger"
+                    onClick={async () => {
+                      if (!confirm(`ZMAZAŤ účet ${u.email}? Táto akcia je NEVRATNÁ!`)) return;
+                      try {
+                        const res = await fetch(`/api/users/${u.user_id}`, {
+                          method: "DELETE",
+                          credentials: "include",
+                        });
+                        if (res.ok) {
+                          alert("Účet zmazaný");
+                          window.location.reload();
+                        } else {
+                          const data = await res.json();
+                          alert(data?.error || "Chyba");
+                        }
+                      } catch (err) {
+                        alert("Sieťová chyba");
+                      }
+                    }}
+                  >
+                    Zmazať
+                  </button>
+                </div>
               </div>
             ))}
 
@@ -402,7 +475,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   tableRow: {
     display: "grid",
-    gridTemplateColumns: "80px 1fr 120px 100px 160px",
+    gridTemplateColumns: "80px 1fr 120px 100px 160px 180px", // added 180px for actions column
     gap: 8,
     alignItems: "center",
     padding: "10px 12px",
