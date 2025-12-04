@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    // read token from cookie first, fallback to Authorization: Bearer <token>
     const tokenFromCookie = req.cookies.get("token")?.value;
     const authHeader = req.headers.get("authorization");
     const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : undefined;
@@ -20,12 +19,12 @@ export async function GET(req: NextRequest) {
     try {
       payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret");
     } catch (err) {
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     const requestedId = Number(req.nextUrl.pathname.split("/").pop());
     if (isNaN(requestedId)) {
-      return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
 
     if (payload.user_id !== requestedId && payload.role !== "admin") {
@@ -37,11 +36,10 @@ export async function GET(req: NextRequest) {
       [requestedId]
     );
     if (users.length === 0) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "user not found" }, { status: 404 });
     }
     return NextResponse.json({ user: users[0] }, { status: 200 });
   } catch (err) {
-    console.error("GET USERS ERROR:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    // read token from cookie first, fallback to Authorization: Bearer <token>
     const tokenFromCookie = req.cookies.get("token")?.value;
     const authHeader = req.headers.get("authorization");
     const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : undefined;
@@ -20,7 +19,7 @@ export async function GET(req: NextRequest) {
     try {
       payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret");
     } catch (err) {
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     if (payload.role !== "admin") {
@@ -28,11 +27,10 @@ export async function GET(req: NextRequest) {
     }
 
     const users = await queryRows(
-      "SELECT user_id, email, role, p_language, p_currency, created_at FROM users"
+      "SELECT user_id, email, role, p_language, p_currency, created_at FROM users where role != 'admin'",
     );
     return NextResponse.json({ users }, { status: 200 });
   } catch (err) {
-    console.error("GET USERS ERROR:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

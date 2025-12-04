@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (typeof newPassword !== "string" || newPassword.length < 8) {
-      return NextResponse.json({ error: "newPassword must be at least 8 characters" }, { status: 400 });
+      return NextResponse.json({ error: "newPassword must be min 8 characters" }, { status: 400 });
     }
 
     const tokenFromCookie = req.cookies.get("token")?.value;
@@ -29,12 +29,12 @@ export async function POST(req: NextRequest) {
     try {
       payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret");
     } catch (err) {
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     const userId = Number(payload?.user_id);
     if (!userId || isNaN(userId)) {
-      return NextResponse.json({ error: "Invalid token payload" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
     const rows = await queryRows<{ password: string }>(
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     );
 
     if (rows.length === 0) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "user not found" }, { status: 404 });
     }
 
     const hashed = rows[0].password;
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     // optional: prevent reusing same password
     const samePassword = await bcrypt.compare(String(newPassword), hashed);
     if (samePassword) {
-      return NextResponse.json({ error: "New password must differ from current password" }, { status: 400 });
+      return NextResponse.json({ error: "New password must be different from current password" }, { status: 400 });
     }
 
     const newHashed = await bcrypt.hash(String(newPassword), 10);
@@ -63,7 +63,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ message: "Password updated" }, { status: 200 });
   } catch (err) {
-    console.error("PASSWORD CHANGE ERROR:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }
