@@ -63,47 +63,89 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="loginPage">
-      <div className="cardPage">
-        <h2 className="titleLogin">Prihlásenie</h2>
+    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-bold text-2xl">₿</span>
+          </div>
+          <h1 className="text-3xl font-bold">Login</h1>
+          <p className="text-gray-400 mt-2">Access your cryptocurrency portfolio</p>
+        </div>
 
-        <form onSubmit={onSubmit} className="form" noValidate>
-          <input
-            className="input"
-            type="email"
-            placeholder="Email..."
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            aria-label="email"
-          />
-          {errors.email && <div className="err">{errors.email}</div>}
+        {/* Form Card */}
+        <div className="bg-gray-900 rounded-lg p-8 border border-gray-800 space-y-6">
+          <form onSubmit={onSubmit} noValidate className="space-y-4">
+            {/* Email Input */}
+            <div>
+              <label className="block text-gray-300 text-sm font-medium mb-2">Email</label>
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+                aria-label="email"
+              />
+              {errors.email && <div className="text-red-400 text-sm mt-1">{errors.email}</div>}
+            </div>
 
-          <input
-            className="input"
-            type="password"
-            placeholder="Heslo..."
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            aria-label="password"
-          />
-          {errors.password && <div className="err">{errors.password}</div>}
+            {/* Password Input */}
+            <div>
+              <label className="block text-gray-300 text-sm font-medium mb-2">Password</label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+                aria-label="password"
+              />
+              {errors.password && <div className="text-red-400 text-sm mt-1">{errors.password}</div>}
+            </div>
 
-          <div className="buttonContainer">
-            <button className="buttonNormal" type="submit" disabled={submitting}>
-              {submitting ? "Prihlasovanie..." : "Prihlásiť sa"}
-            </button>
+            {/* Server Error */}
+            {serverError && (
+              <div className="bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-lg text-sm">
+                {serverError}
+              </div>
+            )}
 
+            {/* Submit Button */}
             <button
-              type="button"
-              onClick={() => router.push("/register")}
-              className="buttonLink"
+              type="submit"
+              disabled={submitting}
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Registrovať
+              {submitting ? "Signing in..." : "Sign In"}
             </button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-700"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-900 text-gray-400">Don't have an account?</span>
+            </div>
           </div>
 
-          {serverError && <div className="errBlock">{serverError}</div>}
-        </form>
+          {/* Sign Up Link */}
+          <button
+            type="button"
+            onClick={() => router.push("/register")}
+            className="w-full px-4 py-2 border border-gray-700 text-white rounded-lg hover:bg-gray-800 transition font-medium"
+          >
+            Create Account
+          </button>
+        </div>
+
+        {/* Footer Text */}
+        <p className="text-center text-gray-500 text-xs mt-6">
+          By signing in, you agree to our Terms of Service
+        </p>
       </div>
     </div>
   );
