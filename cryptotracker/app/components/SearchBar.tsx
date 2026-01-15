@@ -88,7 +88,6 @@ export default function SearchBar() {
         />
       </div>
 
-      {/* Dropdown Results */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50">
           {loading && (
@@ -104,7 +103,7 @@ export default function SearchBar() {
               {results.map((coin) => (
                 <li key={coin.id}>
                   <Link
-                    href={`/api/coins/${coin.id}`}
+                    href={`/coins/${coin.id}`}
                     onClick={() => handleSelectCoin(coin.id)}
                     className="px-4 py-3 hover:bg-gray-700 flex items-center space-x-3 transition cursor-pointer border-b border-gray-700 last:border-b-0"
                   >
