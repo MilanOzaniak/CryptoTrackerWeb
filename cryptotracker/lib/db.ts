@@ -25,3 +25,16 @@ export async function execute(sql: string, params?: any[] | readonly any[]): Pro
 export function closePool(): Promise<void> {
   return pool.end();
 }
+
+
+export interface PortfolioHolding extends RowDataPacket {
+  portfolio_id: number;
+  user_id: number;
+  coin_id: string;
+  amount: string;
+  purchase_price: string | null;
+  purchase_date: Date | null;
+  notes: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
