@@ -145,375 +145,290 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading) return <div style={styles.center}>Loading profile...</div>;
-  if (error) return <div style={{ ...styles.center, color: "#ff6b6b" }}>{error}</div>;
-  if (!user) return <div style={styles.center}>No user data</div>;
+  async function handleUserDisable(userId: number) {
+    if (!confirm("Are you sure you want to disable this user?")) return;
+    try {
+      const res = await fetch(`/api/users/${userId}/disable`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (res.ok) {
+        alert("User disabled successfully");
+        // Refresh the users list
+        const usersRes = await fetch("/api/users", {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (usersRes.ok) {
+          const data = await usersRes.json();
+          setUsers(Array.isArray(data.users) ? data.users : []);
+        }
+      } else {
+        const data = await res.json();
+        alert(data?.error || "Error disabling user");
+      }
+    } catch (err) {
+      alert("Network error");
+    }
+  }
+
+  async function handleUserDelete(userId: number) {
+    if (!confirm("Are you sure you want to DELETE this user? This action is IRREVERSIBLE!")) return;
+    try {
+      const res = await fetch(`/api/users/${userId}/delete`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (res.ok) {
+        alert("User deleted successfully");
+        const usersRes = await fetch("/api/users", {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (usersRes.ok) {
+          const data = await usersRes.json();
+          setUsers(Array.isArray(data.users) ? data.users : []);
+        }
+      } else {
+        const data = await res.json();
+        alert(data?.error || "Error deleting user");
+      }
+    } catch (err) {
+      alert("Network error");
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-white text-lg">Loading profile...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-red-400">{error}</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-white">No user data</div>
+      </div>
+    );
+  }
 
   const initials = user.email ? user.email.charAt(0).toUpperCase() : "?";
 
   return (
-    <main style={styles.page}>
-      <div style={styles.card}>
-        <header style={styles.header}>
-          <div style={styles.avatar}>{initials}</div>
-          <div style={styles.headText}>
-            <h1 style={styles.title}>Profil</h1>
-            <div style={styles.subtitle}>{user.email}</div>
+    <div className="min-h-screen bg-gray-950 text-white">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Profile Header */}
+        <div className="bg-gray-900 rounded-lg p-8 border border-gray-800 mb-6">
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+              {initials}
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Profile</h1>
+              <p className="text-gray-400 mt-1">{user.email}</p>
+            </div>
           </div>
-        </header>
-
-        <section style={styles.grid}>
-          <div style={styles.row}>
-            <div style={styles.label}>ID</div>
-            <div style={styles.value}>{user.user_id}</div>
-          </div>
-
-          <div style={styles.row}>
-            <div style={styles.label}>Rola</div>
-            <div style={styles.value}>{user.role}</div>
-          </div>
-
-          <div style={styles.row}>
-            <div style={styles.label}>Jazyk</div>
-            <div style={styles.value}>{user.p_language ?? "en"}</div>
-          </div>
-
-          <div style={styles.row}>
-            <div style={styles.label}>Mena</div>
-            <div style={styles.value}>{user.p_currency ?? "USD"}</div>
-          </div>
-
-        </section>
-
-        <div style={styles.actions}>
-          <button className="buttonNormal" onClick={() => router.push("/")}>
-            Domov
-          </button>
-
-          <button
-            className="buttonLink"
-            onClick={() => {
-              setShowPasswordForm((s) => !s);
-              setPwMessage(null);
-            }}
-          >
-            Zmeniť heslo
-          </button>
-
-          <button
-            className="buttonDanger"
-            onClick={async () => {
-              if (!confirm("Naozaj chcete zablokovať svoj účet?")) return;
-              try {
-                const res = await fetch(`/api/users/${user.user_id}/disable`, {
-                  method: "POST",
-                  credentials: "include",
-                });
-                if (res.ok) {
-                  alert("Účet zablokovaný");
-                  localStorage.removeItem("user");
-                  router.push("/login");
-                } else {
-                  const data = await res.json();
-                  alert(data?.error || "Chyba");
-                }
-              } catch (err) {
-                alert("Sieťová chyba");
-              }
-            }}
-          >
-            Zablokovať účet
-          </button>
         </div>
 
+        {/* User Details */}
+        <div className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-6">
+          <h2 className="text-xl font-bold mb-4">Account Details</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-gray-400 text-sm mb-1">User ID</div>
+              <div className="text-white font-medium">{user.user_id}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-gray-400 text-sm mb-1">Role</div>
+              <div className="text-white font-medium capitalize">{user.role}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-gray-400 text-sm mb-1">Language</div>
+              <div className="text-white font-medium">{user.p_language ?? "en"}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-gray-400 text-sm mb-1">Currency</div>
+              <div className="text-white font-medium">{user.p_currency ?? "USD"}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-6">
+          <h2 className="text-xl font-bold mb-4">Account Actions</h2>
+          <div className="flex flex-wrap gap-4">
+            <button
+              onClick={() => router.push("/")}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+            >
+              Home
+            </button>
+            <button
+              onClick={() => {
+                setShowPasswordForm((s) => !s);
+                setPwMessage(null);
+              }}
+              className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-medium"
+            >
+              {showPasswordForm ? "Cancel Change Password" : "Change Password"}
+            </button>
+            <button
+              onClick={async () => {
+                if (!confirm("Are you sure you want to disable your account?")) return;
+                try {
+                  const res = await fetch(`/api/users/${user.user_id}/disable`, {
+                    method: "POST",
+                    credentials: "include",
+                  });
+                  if (res.ok) {
+                    alert("Account disabled");
+                    localStorage.removeItem("user");
+                    router.push("/login");
+                  } else {
+                    const data = await res.json();
+                    alert(data?.error || "Error");
+                  }
+                } catch (err) {
+                  alert("Network error");
+                }
+              }}
+              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+            >
+              Disable Account
+            </button>
+          </div>
+        </div>
+
+        {/* Password Change Form */}
         {showPasswordForm && (
-          <form onSubmit={submitPasswordChange} style={styles.passwordCard}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={styles.pwLabel}>
-                Aktuálne heslo
+          <div className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-6">
+            <h2 className="text-xl font-bold mb-4">Change Password</h2>
+            <form onSubmit={submitPasswordChange} className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-2">
+                  Current Password
+                </label>
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="input"
+                  className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                 />
-                {pwErrors.currentPassword && <div style={styles.err}>{pwErrors.currentPassword}</div>}
-              </label>
+                {pwErrors.currentPassword && (
+                  <div className="text-red-400 text-sm mt-1">{pwErrors.currentPassword}</div>
+                )}
+              </div>
 
-              <label style={styles.pwLabel}>
-                Nové heslo
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-2">
+                  New Password
+                </label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="input"
+                  className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                 />
-                {pwErrors.newPassword && <div style={styles.err}>{pwErrors.newPassword}</div>}
-              </label>
+                {pwErrors.newPassword && (
+                  <div className="text-red-400 text-sm mt-1">{pwErrors.newPassword}</div>
+                )}
+              </div>
 
-              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                <button type="submit" className="buttonNormal">
-                  Uložiť
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="submit"
+                  disabled={pwSubmitting}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50"
+                >
+                  {pwSubmitting ? "Saving..." : "Save"}
                 </button>
                 <button
                   type="button"
-                  className="buttonLink"
                   onClick={() => {
                     setShowPasswordForm(false);
+                    setCurrentPassword("");
+                    setNewPassword("");
                     setPwErrors({});
                     setPwMessage(null);
                   }}
+                  className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-medium"
                 >
-                  Zrušiť
+                  Cancel
                 </button>
               </div>
 
-              {pwMessage && <div style={{ marginTop: 8, color: pwMessage.includes("úspešne") ? "#8ce99a" : "#ff6b6b" }}>{pwMessage}</div>}
-            </div>
-          </form>
+              {pwMessage && (
+                <div className="text-green-400 text-sm mt-2">{pwMessage}</div>
+              )}
+            </form>
+          </div>
+        )}
+
+        {/* Admin Users Section */}
+        {user.role === "admin" && (
+          <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+            <h2 className="text-xl font-bold mb-4">All Users (Admin)</h2>
+            {usersLoading && <div className="text-gray-400">Loading users...</div>}
+            {usersError && <div className="text-red-400">{usersError}</div>}
+            
+            {!usersLoading && !usersError && (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-800 border-b border-gray-700">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Role</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Language</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Currency</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {users.map((u) => (
+                      <tr key={u.user_id} className="hover:bg-gray-800 transition">
+                        <td className="px-4 py-3 text-sm">{u.user_id}</td>
+                        <td className="px-4 py-3 text-sm">{u.email}</td>
+                        <td className="px-4 py-3 text-sm capitalize">{u.role}</td>
+                        <td className="px-4 py-3 text-sm">{u.p_language ?? "en"}</td>
+                        <td className="px-4 py-3 text-sm">{u.p_currency ?? "USD"}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleUserDisable(u.user_id)}
+                              className="px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition text-xs font-medium"
+                            >
+                              Disable
+                            </button>
+                            <button
+                              onClick={() => handleUserDelete(u.user_id)}
+                              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-xs font-medium"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         )}
       </div>
-
-{/* admin */}
-      {user.role === "admin" && (
-        <div style={{ ...styles.card, marginTop: 20 }}>
-          <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <h2 style={{ margin: 0 }}>Všetci používatelia</h2>
-            <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>{usersLoading ? "Načítavam..." : `${users.length} položiek`}</div>
-          </header>
-
-          {usersError && <div className="errBlock">{usersError}</div>}
-
-          <div style={styles.table}>
-            <div style={{ ...styles.tableRow, fontWeight: 700, background: "rgba(255,255,255,0.02)" }}>
-              <div style={styles.tableCell}>ID</div>
-              <div style={styles.tableCell}>Email</div>
-              <div style={styles.tableCell}>Rola</div>
-              <div style={styles.tableCell}>Mena</div>
-              <div style={styles.tableCell}>Registrovaný</div>
-              <div style={styles.tableCell}>Akcie</div>
-            </div>
-
-            {users.map((u) => (
-              <div key={u.user_id} style={styles.tableRow}>
-                <div style={styles.tableCell}>{u.user_id}</div>
-                <div style={styles.tableCell}>{u.email}</div>
-                <div style={styles.tableCell}>{u.role}</div>
-                <div style={styles.tableCell}>{u.p_currency ?? "USD"}</div>
-                <div style={styles.tableCell}>{u.created_at ? new Date(u.created_at).toLocaleDateString() : "-"}</div>
-                <div style={{ ...styles.tableCell, display: "flex", gap: 6 }}>
-                  <button
-                    className="buttonSmallDanger"
-                    onClick={async () => {
-                      if (!confirm(`Zablokovať účet ${u.email}?`)) return;
-                      try {
-                        const res = await fetch(`/api/users/${u.user_id}/disable`, {
-                          method: "POST",
-                          credentials: "include",
-                        });
-                        if (res.ok) {
-                          alert("Účet zablokovaný");
-                          window.location.reload();
-                        } else {
-                          const data = await res.json();
-                          alert(data?.error || "Chyba");
-                        }
-                      } catch (err) {
-                        alert("Sieťová chyba");
-                      }
-                    }}
-                  >
-                    Zablokovať
-                  </button>
-                  
-                  <button
-                    className="buttonSmallDanger"
-                    onClick={async () => {
-                      if (!confirm(`ZMAZAŤ účet ${u.email}? Táto akcia je NEVRATNÁ!`)) return;
-                      try {
-                        const res = await fetch(`/api/users/${u.user_id}`, {
-                          method: "DELETE",
-                          credentials: "include",
-                        });
-                        if (res.ok) {
-                          alert("Účet zmazaný");
-                          window.location.reload();
-                        } else {
-                          const data = await res.json();
-                          alert(data?.error || "Chyba");
-                        }
-                      } catch (err) {
-                        alert("Sieťová chyba");
-                      }
-                    }}
-                  >
-                    Zmazať
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {!usersLoading && users.length === 0 && <div style={{ padding: 12, color: "rgba(255,255,255,0.6)" }}>Žiadni používatelia</div>}
-          </div>
-        </div>
-      )}
-    </main>
+    </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    minHeight: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    background: "var(--bg)",
-    padding: 24,
-    gap: 20,
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  card: {
-    width: 720,
-    maxWidth: "95%",
-    borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.06)",
-    padding: 28,
-    background: "linear-gradient(180deg, rgba(20,20,21,0.75), rgba(12,12,13,0.7))",
-    boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
-    color: "var(--text)",
-  },
-  header: {
-    display: "flex",
-    gap: 16,
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    background: "linear-gradient(135deg,#3a3a3a,#222)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 24,
-    fontWeight: 700,
-    color: "#fff",
-    border: "1px solid rgba(255,255,255,0.04)",
-  },
-  headText: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  title: {
-    margin: 0,
-    fontSize: 20,
-    fontWeight: 700,
-  },
-  subtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "rgba(255,255,255,0.65)",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gap: 10,
-    marginTop: 6,
-  },
-  row: {
-    display: "flex",
-    justifyContent: "space-between",
-    padding: "10px 12px",
-    borderRadius: 10,
-    background: "rgba(0,0,0,0.25)",
-    border: "1px solid rgba(255,255,255,0.02)",
-  },
-  label: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 13,
-  },
-  value: {
-    color: "var(--text)",
-    fontWeight: 600,
-  },
-  actions: {
-    marginTop: 18,
-    display: "flex",
-    gap: 12,
-    justifyContent: "flex-end",
-  },
-  primary: {
-    padding: "8px 14px",
-    borderRadius: 8,
-    border: "none",
-    background: "#9f9f9f",
-    color: "#111",
-    cursor: "pointer",
-    fontWeight: 700,
-  },
-  secondary: {
-    padding: "8px 14px",
-    borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "transparent",
-    color: "var(--text)",
-    cursor: "pointer",
-    fontWeight: 700,
-  },
-  center: {
-    padding: 24,
-    textAlign: "center",
-  },
-
-  /* users table styles */
-  table: {
-    marginTop: 8,
-    borderRadius: 8,
-    overflow: "hidden",
-    border: "1px solid rgba(255,255,255,0.03)",
-  },
-  tableRow: {
-    display: "grid",
-    gridTemplateColumns: "80px 1fr 120px 100px 160px 180px", // added 180px for actions column
-    gap: 8,
-    alignItems: "center",
-    padding: "10px 12px",
-    borderBottom: "1px solid rgba(255,255,255,0.02)",
-  },
-  tableCell: {
-    fontSize: 13,
-    color: "var(--text)",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-
-  /* password form */
-  passwordCard: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 8,
-    background: "rgba(0,0,0,0.25)",
-    border: "1px solid rgba(255,255,255,0.03)",
-  },
-  pwLabel: {
-    display: "flex",
-    flexDirection: "column",
-    fontSize: 13,
-    color: "rgba(255,255,255,0.8)",
-  },
-  input: {
-    marginTop: 6,
-    padding: "8px 10px",
-    borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.06)",
-    background: "transparent",
-    color: "var(--text)",
-  },
-  err: {
-    marginTop: 6,
-    color: "#ff6b6b",
-    fontSize: 12,
-  },
-};
