@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import SearchBar from "./SearchBar";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const response = await fetch("/api/auth/me", {
-          credentials: "include", 
+          credentials: "include",
         });
         if (response.ok) {
           const data = await response.json();
@@ -30,7 +32,7 @@ export default function Header() {
     };
 
     checkAuth();
-  }, []);
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -73,13 +75,13 @@ export default function Header() {
               href="/profile"
               className="text-gray-300 hover:text-white transition font-medium"
             >
-              Portfolio
+              Profile
             </Link>
             <Link
-              href="/"
+              href="/portfolio"
               className="text-gray-300 hover:text-white transition font-medium"
             >
-              Markets
+              Portfolio
             </Link>
           </div>
 
