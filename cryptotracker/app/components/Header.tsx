@@ -131,23 +131,18 @@ export default function Header() {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden pb-4 border-t border-gray-800">
-            <Link
-              href="/"
-              className="block px-4 py-2 text-gray-300 hover:bg-gray-800 rounded"
-            >
-              Home
-            </Link>
+
             <Link
               href="/profile"
               className="block px-4 py-2 text-gray-300 hover:bg-gray-800 rounded"
             >
-              Portfolio
+              Profile
             </Link>
             <Link
-              href="/"
+              href="/portfolio"
               className="block px-4 py-2 text-gray-300 hover:bg-gray-800 rounded"
             >
-              Markets
+              Portfolio
             </Link>
             {!loading && !isLoggedIn && (
               <div className="border-t border-gray-800 mt-4 pt-4 px-4 space-y-2">
