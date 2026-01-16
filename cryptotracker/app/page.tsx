@@ -91,8 +91,138 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-white text-lg">Loading market data...</div>
+      <div className="min-h-screen bg-gray-950 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header Skeleton */}
+          <div className="mb-8">
+            <div className="h-10 bg-gray-800 rounded animate-pulse mb-4 w-1/2"></div>
+            <div className="h-6 bg-gray-800 rounded animate-pulse w-3/4"></div>
+          </div>
+
+          {/* Stats Grid Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <div className="h-4 bg-gray-800 rounded animate-pulse mb-3 w-1/3"></div>
+              <div className="h-8 bg-gray-800 rounded animate-pulse mb-3 w-1/2"></div>
+              <div className="h-4 bg-gray-800 rounded animate-pulse w-1/4"></div>
+            </div>
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <div className="h-4 bg-gray-800 rounded animate-pulse mb-3 w-1/3"></div>
+              <div className="h-8 bg-gray-800 rounded animate-pulse mb-3 w-1/2"></div>
+              <div className="h-4 bg-gray-800 rounded animate-pulse w-1/4"></div>
+            </div>
+          </div>
+
+          {/* Trending & Top Gainers Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            {/* Trending Skeleton */}
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <div className="h-6 bg-gray-800 rounded animate-pulse mb-4 w-1/3"></div>
+              <div className="space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3">
+                    <div className="w-8 h-8 bg-gray-800 rounded-full animate-pulse"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-800 rounded animate-pulse mb-2 w-1/2"></div>
+                      <div className="h-3 bg-gray-800 rounded animate-pulse w-1/3"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Top Gainers Skeleton */}
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <div className="h-6 bg-gray-800 rounded animate-pulse mb-4 w-1/3"></div>
+              <div className="space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center justify-between p-3">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-8 h-8 bg-gray-800 rounded-full animate-pulse"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse mb-2 w-1/2"></div>
+                        <div className="h-3 bg-gray-800 rounded animate-pulse w-1/3"></div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="h-4 bg-gray-800 rounded animate-pulse mb-2 w-20"></div>
+                      <div className="h-3 bg-gray-800 rounded animate-pulse w-16"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Table Skeleton */}
+          <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-800">
+              <div className="h-6 bg-gray-800 rounded animate-pulse w-1/4"></div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-800 border-b border-gray-700">
+                  <tr>
+                    <th className="px-6 py-3">
+                      <div className="h-4 bg-gray-700 rounded animate-pulse w-8"></div>
+                    </th>
+                    <th className="px-6 py-3">
+                      <div className="h-4 bg-gray-700 rounded animate-pulse w-20"></div>
+                    </th>
+                    <th className="px-6 py-3">
+                      <div className="h-4 bg-gray-700 rounded animate-pulse w-16 ml-auto"></div>
+                    </th>
+                    <th className="px-6 py-3">
+                      <div className="h-4 bg-gray-700 rounded animate-pulse w-12 ml-auto"></div>
+                    </th>
+                    <th className="px-6 py-3">
+                      <div className="h-4 bg-gray-700 rounded animate-pulse w-12 ml-auto"></div>
+                    </th>
+                    <th className="px-6 py-3 hidden lg:table-cell">
+                      <div className="h-4 bg-gray-700 rounded animate-pulse w-20 ml-auto"></div>
+                    </th>
+                    <th className="px-6 py-3 hidden lg:table-cell">
+                      <div className="h-4 bg-gray-700 rounded animate-pulse w-20 ml-auto"></div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {[...Array(10)].map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-8"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 bg-gray-800 rounded-full animate-pulse"></div>
+                          <div className="flex-1">
+                            <div className="h-4 bg-gray-800 rounded animate-pulse mb-2 w-20"></div>
+                            <div className="h-3 bg-gray-800 rounded animate-pulse w-16"></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-20 ml-auto"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-12 ml-auto"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-12 ml-auto"></div>
+                      </td>
+                      <td className="px-6 py-4 hidden lg:table-cell">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-20 ml-auto"></div>
+                      </td>
+                      <td className="px-6 py-4 hidden lg:table-cell">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-20 ml-auto"></div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
