@@ -12,7 +12,11 @@ interface CoinResult {
   large: string;
 }
 
-export default function SearchBar() {
+interface SearchBarProps {
+  onCoinSelect?: (coinId: string) => void;
+}
+
+export default function SearchBar({ onCoinSelect }: SearchBarProps = {}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CoinResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -60,6 +64,9 @@ export default function SearchBar() {
     setQuery("");
     setResults([]);
     setIsOpen(false);
+    if (onCoinSelect) {
+      onCoinSelect(coinId);
+    }
   };
 
   return (
@@ -102,24 +109,45 @@ export default function SearchBar() {
             <ul className="max-h-80 overflow-y-auto">
               {results.map((coin) => (
                 <li key={coin.id}>
-                  <Link
-                    href={`/coins/${coin.id}`}
-                    onClick={() => handleSelectCoin(coin.id)}
-                    className="px-4 py-3 hover:bg-gray-700 flex items-center space-x-3 transition cursor-pointer border-b border-gray-700 last:border-b-0"
-                  >
-                    <img
-                      src={coin.thumb}
-                      alt={coin.name}
-                      className="w-6 h-6 rounded-full"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-white font-medium truncate">{coin.name}</div>
-                      <div className="text-gray-400 text-sm">
-                        {coin.symbol.toUpperCase()}
-                        {coin.market_cap_rank && ` • Rank #${coin.market_cap_rank}`}
+                  {onCoinSelect ? (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCoin(coin.id)}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-700 flex items-center space-x-3 transition cursor-pointer border-b border-gray-700 last:border-b-0"
+                    >
+                      <img
+                        src={coin.thumb}
+                        alt={coin.name}
+                        className="w-6 h-6 rounded-full"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white font-medium truncate">{coin.name}</div>
+                        <div className="text-gray-400 text-sm">
+                          {coin.symbol.toUpperCase()}
+                          {coin.market_cap_rank && ` • Rank #${coin.market_cap_rank}`}
+                        </div>
                       </div>
-                    </div>
-                  </Link>
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/coins/${coin.id}`}
+                      onClick={() => handleSelectCoin(coin.id)}
+                      className="px-4 py-3 hover:bg-gray-700 flex items-center space-x-3 transition cursor-pointer border-b border-gray-700 last:border-b-0"
+                    >
+                      <img
+                        src={coin.thumb}
+                        alt={coin.name}
+                        className="w-6 h-6 rounded-full"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white font-medium truncate">{coin.name}</div>
+                        <div className="text-gray-400 text-sm">
+                          {coin.symbol.toUpperCase()}
+                          {coin.market_cap_rank && ` • Rank #${coin.market_cap_rank}`}
+                        </div>
+                      </div>
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
