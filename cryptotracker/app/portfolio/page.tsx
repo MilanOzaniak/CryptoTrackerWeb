@@ -207,8 +207,93 @@ export default function PortfolioPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-white">Loading portfolio...</div>
+      <div className="min-h-screen bg-gray-950 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header Skeleton */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex-1">
+              <div className="h-10 bg-gray-800 rounded animate-pulse mb-4 w-1/3"></div>
+              <div className="h-4 bg-gray-800 rounded animate-pulse w-1/4"></div>
+            </div>
+            <div className="h-10 bg-gray-800 rounded animate-pulse w-32"></div>
+          </div>
+
+          {/* Stats Grid Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg p-6 border border-gray-800 shadow-lg">
+                <div className="h-3 bg-gray-700 rounded animate-pulse mb-3 w-1/2"></div>
+                <div className="h-6 bg-gray-700 rounded animate-pulse mb-2 w-2/3"></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Table Skeleton */}
+          <div className="bg-gray-900 rounded-lg border border-gray-800 shadow-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-800/50 border-b border-gray-700">
+                  <tr>
+                    <th className="px-6 py-4">
+                      <div className="h-3 bg-gray-700 rounded animate-pulse w-12"></div>
+                    </th>
+                    <th className="px-6 py-4">
+                      <div className="h-3 bg-gray-700 rounded animate-pulse w-16"></div>
+                    </th>
+                    <th className="px-6 py-4">
+                      <div className="h-3 bg-gray-700 rounded animate-pulse w-20 ml-auto"></div>
+                    </th>
+                    <th className="px-6 py-4">
+                      <div className="h-3 bg-gray-700 rounded animate-pulse w-20 ml-auto"></div>
+                    </th>
+                    <th className="px-6 py-4">
+                      <div className="h-3 bg-gray-700 rounded animate-pulse w-16 ml-auto"></div>
+                    </th>
+                    <th className="px-6 py-4">
+                      <div className="h-3 bg-gray-700 rounded animate-pulse w-16 ml-auto"></div>
+                    </th>
+                    <th className="px-6 py-4">
+                      <div className="h-3 bg-gray-700 rounded animate-pulse w-12 ml-auto"></div>
+                    </th>
+                    <th className="px-6 py-4">
+                      <div className="h-3 bg-gray-700 rounded animate-pulse w-12"></div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {[...Array(8)].map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-20"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-24"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-20 ml-auto"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-20 ml-auto"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-24 ml-auto"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-24 ml-auto"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-20 ml-auto"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-800 rounded animate-pulse w-24"></div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
