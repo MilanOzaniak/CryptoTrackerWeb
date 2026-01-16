@@ -66,12 +66,6 @@ export default function Header() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8 flex-shrink-0">
             <Link
-              href="/"
-              className="text-gray-300 hover:text-white transition font-medium"
-            >
-              Home
-            </Link>
-            <Link
               href="/profile"
               className="text-gray-300 hover:text-white transition font-medium"
             >
