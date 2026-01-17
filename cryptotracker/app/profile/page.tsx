@@ -39,6 +39,14 @@ export default function ProfilePage() {
   const [pwErrors, setPwErrors] = useState<Record<string, string>>({});
   const [pwSubmitting, setPwSubmitting] = useState(false);
   const [pwMessage, setPwMessage] = useState<string | null>(null);
+  const [showLangForm, setShowLangForm] = useState(false);
+  const [showCurrForm, setShowCurrForm] = useState(false);
+  const [langValue, setLangValue] = useState("en");
+  const [langMessage, setLangMessage] = useState<string | null>(null);
+  const [langSubmitting, setLangSubmitting] = useState(false);
+  const [currValue, setCurrValue] = useState("USD");
+  const [currMessage, setCurrMessage] = useState<string | null>(null);
+  const [currSubmitting, setCurrSubmitting] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -105,6 +113,11 @@ export default function ProfilePage() {
     fetchUsers();
   }, [user]);
 
+  useEffect(() => {
+    if (user?.p_language) setLangValue(user.p_language);
+    if (user?.p_currency) setCurrValue(user.p_currency);
+  }, [user]);
+
   function validatePasswordForm() {
     const e: Record<string, string> = {};
     if (!currentPassword) e.currentPassword = "Zadajte aktuálne heslo";
@@ -142,6 +155,66 @@ export default function ProfilePage() {
       setPwMessage("Sieťová chyba");
     } finally {
       setPwSubmitting(false);
+    }
+  }
+
+  async function submitLanguageChange(ev?: React.FormEvent) {
+    ev?.preventDefault();
+    setLangMessage(null);
+    const code = langValue.trim().toLowerCase();
+    if (!code) {
+      setLangMessage("Enter a language code");
+      return;
+    }
+    setLangSubmitting(true);
+    try {
+      const res = await fetch("/api/users/me/planguage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ p_language: code }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setLangMessage("Preferred language updated");
+        setUser((u) => (u ? { ...u, p_language: data?.p_language ?? code } : u));
+      } else {
+        setLangMessage(data?.error || `Error (${res.status})`);
+      }
+    } catch {
+      setLangMessage("Network error");
+    } finally {
+      setLangSubmitting(false);
+    }
+  }
+
+  async function submitCurrencyChange(ev?: React.FormEvent) {
+    ev?.preventDefault();
+    setCurrMessage(null);
+    const code = currValue.trim().toUpperCase();
+    if (!code) {
+      setCurrMessage("Enter a currency code");
+      return;
+    }
+    setCurrSubmitting(true);
+    try {
+      const res = await fetch("/api/users/me/currency", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ p_currency: code }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setCurrMessage("Preferred currency updated");
+        setUser((u) => (u ? { ...u, p_currency: data?.p_currency ?? code } : u));
+      } else {
+        setCurrMessage(data?.error || `Error (${res.status})`);
+      }
+    } catch {
+      setCurrMessage("Network error");
+    } finally {
+      setCurrSubmitting(false);
     }
   }
 
@@ -225,6 +298,8 @@ export default function ProfilePage() {
   }
 
   const initials = user.email ? user.email.charAt(0).toUpperCase() : "?";
+  const languageOptions = ["en", "es", "de", "fr", "sk", "cs", "pl", "it", "pt", "tr"];
+  const currencyOptions = ["USD", "EUR", "GBP", "CHF", "JPY", "AUD", "CAD", "NZD", "SEK", "CZK"];
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -270,19 +345,49 @@ export default function ProfilePage() {
           <h2 className="text-xl font-bold mb-4">Account Actions</h2>
           <div className="flex flex-wrap gap-4">
             <button
-              onClick={() => router.push("/")}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+              onClick={() => {
+                setShowPasswordForm((s) => !s);
+                setShowLangForm(false);
+                setShowCurrForm(false);
+                setPwMessage(null);
+              }}
+              className={`px-6 py-2 text-white rounded-lg transition font-medium ${
+                showPasswordForm
+                  ? "bg-blue-600 hover:bg-blue-700 ring-2 ring-blue-400"
+                  : "bg-gray-700 hover:bg-gray-600"
+              }`}
             >
-              Home
+              Change Password
             </button>
             <button
               onClick={() => {
-                setShowPasswordForm((s) => !s);
-                setPwMessage(null);
+                setShowLangForm((s) => !s);
+                setShowPasswordForm(false);
+                setShowCurrForm(false);
+                setLangMessage(null);
               }}
-              className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-medium"
+              className={`px-6 py-2 text-white rounded-lg transition font-medium ${
+                showLangForm
+                  ? "bg-blue-600 hover:bg-blue-700 ring-2 ring-blue-400"
+                  : "bg-gray-700 hover:bg-gray-600"
+              }`}
             >
-              {showPasswordForm ? "Cancel Change Password" : "Change Password"}
+              Change Language
+            </button>
+            <button
+              onClick={() => {
+                setShowCurrForm((s) => !s);
+                setShowPasswordForm(false);
+                setShowLangForm(false);
+                setCurrMessage(null);
+              }}
+              className={`px-6 py-2 text-white rounded-lg transition font-medium ${
+                showCurrForm
+                  ? "bg-blue-600 hover:bg-blue-700 ring-2 ring-blue-400"
+                  : "bg-gray-700 hover:bg-gray-600"
+              }`}
+            >
+              Change Currency
             </button>
             <button
               onClick={async () => {
@@ -310,6 +415,98 @@ export default function ProfilePage() {
             </button>
           </div>
         </div>
+
+        {/* Change Language */}
+        {showLangForm && (
+          <div className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-6">
+            <h2 className="text-xl font-bold mb-4">Change Preferred Language</h2>
+            <form onSubmit={submitLanguageChange} className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-2">Language</label>
+                <select
+                  value={langValue}
+                  onChange={(e) => setLangValue(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                >
+                  {languageOptions.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 mt-2">
+                <button
+                  type="submit"
+                  disabled={langSubmitting}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50"
+                >
+                  {langSubmitting ? "Saving..." : "Save Language"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLangValue(user.p_language ?? "en");
+                    setLangMessage(null);
+                    setShowLangForm(false);
+                  }}
+                  className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {langMessage && <div className="text-sm text-green-400">{langMessage}</div>}
+            </form>
+          </div>
+        )}
+
+        {/* Change Currency */}
+        {showCurrForm && (
+          <div className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-6">
+            <h2 className="text-xl font-bold mb-4">Change Preferred Currency</h2>
+            <form onSubmit={submitCurrencyChange} className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-2">Currency</label>
+                <select
+                  value={currValue}
+                  onChange={(e) => setCurrValue(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                >
+                  {currencyOptions.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 mt-2">
+                <button
+                  type="submit"
+                  disabled={currSubmitting}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50"
+                >
+                  {currSubmitting ? "Saving..." : "Save Currency"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrValue(user.p_currency ?? "USD");
+                    setCurrMessage(null);
+                    setShowCurrForm(false);
+                  }}
+                  className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {currMessage && <div className="text-sm text-green-400">{currMessage}</div>}
+            </form>
+          </div>
+        )}
 
         {/* Password Change Form */}
         {showPasswordForm && (
