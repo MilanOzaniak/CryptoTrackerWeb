@@ -44,6 +44,13 @@ export default function PortfolioPage() {
   });
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [swapFromHolding, setSwapFromHolding] = useState<Holding | null>(null);
+  const [swapToCoinId, setSwapToCoinId] = useState("");
+  const [swapAmount, setSwapAmount] = useState("");
+  const [swapEstimate, setSwapEstimate] = useState<number | null>(null);
+  const [swapError, setSwapError] = useState<string | null>(null);
+  const [swapping, setSwapping] = useState(false);
 
   // Fetch auth + portfolio
   useEffect(() => {
@@ -97,6 +104,34 @@ export default function PortfolioPage() {
     }
     load();
   }, [router]);
+
+  const ensurePrice = async (coinId: string): Promise<number | null> => {
+    if (!coinId) return null;
+    if (prices[coinId] != null) return prices[coinId];
+    const currency = (me?.user?.p_currency || "USD").toLowerCase();
+    try {
+      const pr = await fetch(`/api/coins/${coinId}/price?vs_currencies=${currency}`);
+      if (!pr.ok) return null;
+      const pdata = await pr.json();
+      const val = pdata?.data?.[currency];
+      if (typeof val === "number") {
+        setPrices((prev) => ({ ...prev, [coinId]: val }));
+        return val;
+      }
+    } catch {}
+    return null;
+  };
+
+  const reloadPortfolio = async () => {
+    const portRes = await fetch("/api/portfolio", { credentials: "include", cache: "no-store" });
+    if (portRes.ok) {
+      const portData = await portRes.json();
+      const holdingsList: Holding[] = Array.isArray(portData.holdings) ? portData.holdings : [];
+      setHoldings(holdingsList);
+      return holdingsList;
+    }
+    return holdings;
+  };
 
   const handleCoinSelect = async (coinId: string) => {
     setSelectedCoinId(coinId);
@@ -156,32 +191,119 @@ export default function PortfolioPage() {
       setSelectedCoinId("");
       setFormData({ amount: "", purchase_price: "", purchase_date: new Date().toISOString().split('T')[0], notes: "" });
       
-      // Reload the portfolio
-      const portRes = await fetch("/api/portfolio", { credentials: "include", cache: "no-store" });
-      if (portRes.ok) {
-        const portData = await portRes.json();
-        const holdingsList: Holding[] = Array.isArray(portData.holdings) ? portData.holdings : [];
-        setHoldings(holdingsList);
-        
-        // Fetch prices for the new coin if needed
-        const currency = (me?.user?.p_currency || "USD").toLowerCase();
-        if (selectedCoinId && !prices[selectedCoinId]) {
-          try {
-            const pr = await fetch(`/api/coins/${selectedCoinId}/price?vs_currencies=${currency}`);
-            if (pr.ok) {
-              const pdata = await pr.json();
-              const val = pdata?.data?.[currency];
-              if (typeof val === "number") {
-                setPrices((prev) => ({ ...prev, [selectedCoinId]: val }));
-              }
+      const holdingsList = await reloadPortfolio();
+      const currency = (me?.user?.p_currency || "USD").toLowerCase();
+      if (selectedCoinId && !prices[selectedCoinId]) {
+        try {
+          const pr = await fetch(`/api/coins/${selectedCoinId}/price?vs_currencies=${currency}`);
+          if (pr.ok) {
+            const pdata = await pr.json();
+            const val = pdata?.data?.[currency];
+            if (typeof val === "number") {
+              setPrices((prev) => ({ ...prev, [selectedCoinId]: val }));
             }
-          } catch {}
-        }
+          }
+        } catch {}
       }
     } catch (err) {
       setAddError("Network error");
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleOpenSwap = (holding: Holding) => {
+    setSwapFromHolding(holding);
+    setSwapToCoinId("");
+    setSwapAmount("");
+    setSwapEstimate(null);
+    setSwapError(null);
+    setShowSwapModal(true);
+  };
+
+  const updateSwapEstimate = async (amountStr: string, toCoin?: string) => {
+    setSwapEstimate(null);
+    if (!swapFromHolding) return;
+    const targetCoin = toCoin ?? swapToCoinId;
+    const amtNum = parseFloat(amountStr);
+    if (!targetCoin || isNaN(amtNum) || amtNum <= 0) return;
+    const fromPrice = await ensurePrice(swapFromHolding.coin_id);
+    const toPrice = await ensurePrice(targetCoin);
+    if (fromPrice == null || toPrice == null || toPrice === 0) return;
+    const est = Number(((amtNum * fromPrice) / toPrice).toFixed(6));
+    setSwapEstimate(est);
+  };
+
+  const handleSwapToSelect = async (coinId: string) => {
+    if (swapFromHolding && coinId === swapFromHolding.coin_id) {
+      setSwapError("Choose a different coin to swap into");
+      setSwapToCoinId("");
+      setSwapEstimate(null);
+      return;
+    }
+    setSwapToCoinId(coinId);
+    setSwapError(null);
+    await updateSwapEstimate(swapAmount, coinId);
+  };
+
+  const handleSwapSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!swapFromHolding) return;
+    const amountNum = parseFloat(swapAmount);
+    const available = parseFloat(swapFromHolding.amount);
+
+    if (!swapToCoinId) {
+      setSwapError("Select the coin to receive");
+      return;
+    }
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setSwapError("Enter a valid amount to swap");
+      return;
+    }
+    if (amountNum > available) {
+      setSwapError("You cannot swap more than you hold");
+      return;
+    }
+
+    setSwapping(true);
+    setSwapError(null);
+    try {
+      const res = await fetch("/api/portfolio/swap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          from_coin_id: swapFromHolding.coin_id,
+          to_coin_id: swapToCoinId,
+          amount: amountNum,
+          vs_currency: (me?.user?.p_currency || "USD").toLowerCase(),
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setSwapError(data?.error || "Failed to swap");
+        return;
+      }
+
+      if (data?.holdings) {
+        setHoldings(Array.isArray(data.holdings) ? data.holdings : []);
+      } else {
+        await reloadPortfolio();
+      }
+
+      await ensurePrice(swapFromHolding.coin_id);
+      await ensurePrice(swapToCoinId);
+
+      setShowSwapModal(false);
+      setSwapFromHolding(null);
+      setSwapToCoinId("");
+      setSwapAmount("");
+      setSwapEstimate(null);
+    } catch (err) {
+      setSwapError("Network error");
+    } finally {
+      setSwapping(false);
     }
   };
 
@@ -366,6 +488,7 @@ export default function PortfolioPage() {
                   <th className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">P/L</th>
                   <th className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Date</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Notes</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
@@ -379,6 +502,14 @@ export default function PortfolioPage() {
                     <td className={`px-6 py-4 text-sm text-right font-mono font-semibold ${pnl != null ? (pnl >= 0 ? "text-green-400" : "text-red-400") : "text-gray-400"}`}>{pnl != null ? `${pnl.toLocaleString(undefined, { style: "currency", currency })}${pnlPct != null ? ` (${pnlPct.toFixed(2)}%)` : ""}` : "-"}</td>
                     <td className="px-6 py-4 text-sm text-right text-gray-400">{h.purchase_date ? new Date(h.purchase_date).toLocaleDateString() : "-"}</td>
                     <td className="px-6 py-4 text-sm text-gray-400">{h.notes || ""}</td>
+                    <td className="px-6 py-4 text-sm text-left">
+                      <button
+                        onClick={() => handleOpenSwap(h)}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-semibold transition shadow-md shadow-blue-900/40"
+                      >
+                        Swap
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -395,6 +526,123 @@ export default function PortfolioPage() {
             </div>
           )}
         </div>
+
+        {/* Swap Modal */}
+        {showSwapModal && swapFromHolding && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-gray-700 shadow-2xl w-full max-w-xl animate-in fade-in zoom-in duration-200">
+              <div className="p-6 border-b border-gray-700 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Swap Coins</h2>
+                  <p className="text-gray-400 text-sm mt-1">Swap from {swapFromHolding.coin_id.replace(/-/g, " ")} (holdings: {parseFloat(swapFromHolding.amount).toLocaleString()})</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowSwapModal(false);
+                    setSwapFromHolding(null);
+                    setSwapToCoinId("");
+                    setSwapAmount("");
+                    setSwapEstimate(null);
+                    setSwapError(null);
+                  }}
+                  className="text-gray-400 hover:text-white transition"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleSwapSubmit} className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Amount to swap</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={swapAmount}
+                      onChange={async (e) => {
+                        setSwapAmount(e.target.value);
+                        await updateSwapEstimate(e.target.value);
+                      }}
+                      className="w-full px-4 py-2.5 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                      placeholder="0.00"
+                    />
+                    <span className="text-gray-400 text-sm whitespace-nowrap">Avail: {parseFloat(swapFromHolding.amount).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Receive coin</label>
+                  <SearchBar onCoinSelect={handleSwapToSelect} />
+                  {swapToCoinId && (
+                    <div className="mt-2 px-3 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm text-blue-300 flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="capitalize font-medium">{swapToCoinId.replace(/-/g, " ")}</span>
+                    </div>
+                  )}
+                </div>
+
+                {swapEstimate != null && swapToCoinId && (
+                  <div className="px-4 py-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-300">
+                    Estimated receive: <span className="font-semibold">{swapEstimate.toLocaleString()} {swapToCoinId.replace(/-/g, " ")}</span> at current prices
+                  </div>
+                )}
+
+                {swapError && (
+                  <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 flex items-center gap-2">
+                    <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    {swapError}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={swapping}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg disabled:shadow-none transition-all flex items-center justify-center gap-2"
+                  >
+                    {swapping ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Swapping...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582a10 10 0 0115.356-2.145l-1.464 1.464A8 8 0 006.582 9H11V4H4zm16 16v-5h-.582a10 10 0 00-15.356 2.145l1.464 1.464A8 8 0 0117.418 15H13v5h7z" />
+                        </svg>
+                        Swap now
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSwapModal(false);
+                      setSwapFromHolding(null);
+                      setSwapToCoinId("");
+                      setSwapAmount("");
+                      setSwapEstimate(null);
+                      setSwapError(null);
+                    }}
+                    className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Add Coin Modal */}
         {showAddModal && (
