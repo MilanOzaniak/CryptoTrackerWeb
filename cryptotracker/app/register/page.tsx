@@ -151,8 +151,8 @@ export default function RegisterPage() {
                   className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
                 >
                   <option value="en">English</option>
-                  <option value="sk">Slovenčina</option>
-                  <option value="cs">Čeština</option>
+                  <option value="sk">Slovak</option>
+                  <option value="cs">Czech</option>
                 </select>
               </div>
               <div>
