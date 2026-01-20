@@ -89,7 +89,8 @@ CREATE TABLE portfolio (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  INDEX idx_user_id (user_id)
+  INDEX idx_user_id (user_id),
+  INDEX idx_user_coin (user_id, coin_id)
 );
 
 -- Tabuľka transakcií
@@ -97,13 +98,7 @@ CREATE TABLE transactions (
   transaction_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('buy', 'sell', 'swap')),
-  from_coin_id VARCHAR(50),
-  from_amount DECIMAL(20, 8),
-  from_price_usd DECIMAL(20, 8),
-  to_coin_id VARCHAR(50),
-  to_amount DECIMAL(20, 8),
-  to_price_usd DECIMAL(20, 8),
-  total_value_usd DECIMAL(20, 8),
+  coin_id VARCHAR(50),
   notes TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -111,6 +106,19 @@ CREATE TABLE transactions (
   INDEX idx_user_id (user_id),
   INDEX idx_created_at (created_at),
   INDEX idx_type (transaction_type)
+);
+
+-- Tabuľka watchlist
+CREATE TABLE watchlist (
+  watchlist_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  coin_id VARCHAR(50) NOT NULL,
+  added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  notes TEXT,
+  target_price DECIMAL(20, 8),
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  UNIQUE KEY unique_user_coin (user_id, coin_id),
+  INDEX idx_user_id (user_id)
 );
 ```
 
