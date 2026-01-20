@@ -24,7 +24,7 @@ Aplikácia na sledovanie a správu kryptomenového portfólia postavená na Next
 ### 1. Klonovanie repozitára
 
 ```bash
-git clone https://github.com/vasepouzivatel/CryptoTrackerWeb.git
+git clone https://github.com/MilanOzaniak/CryptoTrackerWeb.git
 cd CryptoTrackerWeb/cryptotracker
 ```
 
