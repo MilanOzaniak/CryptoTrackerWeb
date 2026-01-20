@@ -37,6 +37,43 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
   const [coin, setCoin] = useState<CoinDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState("usd");
+  const [addingToWatchlist, setAddingToWatchlist] = useState(false);
+  const [watchlistMessage, setWatchlistMessage] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIsLoggedIn(data.loggedIn === true);
+        } else {
+          setIsLoggedIn(false);
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error);
+        setIsLoggedIn(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const userData = JSON.parse(stored);
+        const code = (userData?.p_currency ?? "USD").toLowerCase();
+        setCurrency(code);
+      }
+    } catch {
+      setCurrency("usd");
+    }
+  }, []);
 
   useEffect(() => {
     params.then((p) => setCoinId(p.id));
@@ -78,10 +115,87 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
     return num.toFixed(2);
   };
 
+  const handleAddToWatchlist = async () => {
+    if (!coinId) return;
+    
+    setAddingToWatchlist(true);
+    setWatchlistMessage(null);
+    
+    try {
+      const res = await fetch("/api/watchlist/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coin_id: coinId }),
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setWatchlistMessage("✓ Added to watchlist!");
+        setTimeout(() => setWatchlistMessage(null), 3000);
+      } else {
+        setWatchlistMessage(data.error || "Failed to add to watchlist");
+      }
+    } catch (error) {
+      console.error("Error adding to watchlist:", error);
+      setWatchlistMessage("Error adding to watchlist");
+    } finally {
+      setAddingToWatchlist(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-white text-lg">Loading coin details...</div>
+      <div className="min-h-screen bg-gray-950 text-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+          <div className="h-5 w-40 bg-gray-800 rounded mb-6" />
+
+          {/* Header skeleton */}
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-16 h-16 rounded-full bg-gray-800" />
+            <div className="space-y-2">
+              <div className="h-8 w-48 bg-gray-800 rounded" />
+              <div className="h-5 w-24 bg-gray-800 rounded" />
+            </div>
+            <div className="ml-auto bg-gray-900 px-4 py-2 rounded-lg">
+              <div className="h-3 w-12 bg-gray-800 rounded mb-2" />
+              <div className="h-6 w-16 bg-gray-800 rounded" />
+            </div>
+          </div>
+
+          {/* Price section skeleton */}
+          <div className="bg-gray-900 rounded-lg p-8 border border-gray-800 mb-8">
+            <div className="h-4 w-40 bg-gray-800 rounded mb-3" />
+            <div className="h-10 w-56 bg-gray-800 rounded mb-3" />
+            <div className="h-5 w-40 bg-gray-800 rounded" />
+            <div className="flex gap-2 mt-6">
+              <div className="h-9 w-16 bg-gray-800 rounded" />
+              <div className="h-9 w-16 bg-gray-800 rounded" />
+              <div className="h-9 w-16 bg-gray-800 rounded" />
+            </div>
+          </div>
+
+          {/* Stats grid skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+                <div className="h-4 w-24 bg-gray-800 rounded mb-3" />
+                <div className="h-7 w-32 bg-gray-800 rounded" />
+              </div>
+            ))}
+          </div>
+
+          {/* Description skeleton */}
+          <div className="bg-gray-900 rounded-lg p-8 border border-gray-800">
+            <div className="h-6 w-48 bg-gray-800 rounded mb-4" />
+            <div className="space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-4 w-full bg-gray-800 rounded" />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -130,39 +244,52 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
               <div className="text-2xl font-bold">#{coin.market_data.market_cap_rank}</div>
             </div>
           )}
+          {isLoggedIn && (
+            <button
+              onClick={handleAddToWatchlist}
+              disabled={addingToWatchlist}
+              className="ml-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+            >
+              {addingToWatchlist ? (
+                <>
+                  <span className="inline-block animate-spin">⏳</span>
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <span>⭐</span>
+                  Add to Watchlist
+                </>
+              )}
+            </button>
+          )}
         </div>
+
+        {/* Watchlist Message */}
+        {watchlistMessage && (
+          <div
+            className={`mb-4 p-4 rounded-lg ${
+              watchlistMessage.startsWith("✓")
+                ? "bg-green-900/50 text-green-200 border border-green-700"
+                : "bg-red-900/50 text-red-200 border border-red-700"
+            }`}
+          >
+            {watchlistMessage}
+          </div>
+        )}
 
         {/* Price Section */}
         <div className="bg-gray-900 rounded-lg p-8 border border-gray-800 mb-8">
-          <div className="mb-6">
-            <div className="text-gray-400 text-sm mb-2">Price ({currency.toUpperCase()})</div>
-            <div className="text-5xl font-bold">{formatPrice(currentPrice)}</div>
-            <div
-              className={`text-lg font-semibold mt-2 ${
-                coin.market_data.price_change_24h >= 0 ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {coin.market_data.price_change_24h >= 0 ? "▲" : "▼"}{" "}
-              {Math.abs(coin.market_data.price_change_24h).toFixed(2)}{" "}
-              ({coin.market_data.price_change_percentage_24h.toFixed(2)}%)
-            </div>
-          </div>
-
-          {/* Currency Selector */}
-          <div className="flex gap-2">
-            {["USD", "EUR", "GBP"].map((curr) => (
-              <button
-                key={curr}
-                onClick={() => setCurrency(curr.toLowerCase())}
-                className={`px-4 py-2 rounded ${
-                  currency.toUpperCase() === curr
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                }`}
-              >
-                {curr}
-              </button>
-            ))}
+          <div className="text-gray-400 text-sm mb-2">Price ({currency.toUpperCase()})</div>
+          <div className="text-5xl font-bold">{formatPrice(currentPrice)}</div>
+          <div
+            className={`text-lg font-semibold mt-2 ${
+              coin.market_data.price_change_24h >= 0 ? "text-green-400" : "text-red-400"
+            }`}
+          >
+            {coin.market_data.price_change_24h >= 0 ? "▲" : "▼"}{" "}
+            {Math.abs(coin.market_data.price_change_24h).toFixed(2)}{" "}
+            ({coin.market_data.price_change_percentage_24h.toFixed(2)}%)
           </div>
         </div>
 
