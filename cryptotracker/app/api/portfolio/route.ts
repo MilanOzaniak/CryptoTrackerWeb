@@ -23,7 +23,6 @@ function verifyToken(token?: string): { user_id: number; role: string; email: st
 	}
 }
 
-// GET /api/portfolio -> current user's portfolio holdings
 export async function GET(req: NextRequest) {
 	try {
 		const token = getToken(req);
@@ -43,7 +42,6 @@ export async function GET(req: NextRequest) {
 	}
 }
 
-// POST /api/portfolio -> create new holding for current user
 export async function POST(req: NextRequest) {
 	try {
 		const token = getToken(req);

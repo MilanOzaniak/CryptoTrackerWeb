@@ -26,8 +26,6 @@ function verifyToken(token?: string): { user_id: number; role: string; email?: s
   }
 }
 
-// POST /api/portfolio/swap
-// Swap an amount of one coin for another based on current price data.
 export async function POST(req: NextRequest) {
   try {
     const token = getToken(req);
@@ -83,7 +81,6 @@ export async function POST(req: NextRequest) {
 
     const receiveAmount = (amtNum * fromPrice) / toPrice;
 
-    // Deduct from the source holding
     const remaining = currentAmount - amtNum;
     if (remaining <= 0) {
       await execute("DELETE FROM portfolio WHERE portfolio_id = ?", [fromHolding.portfolio_id]);
@@ -91,7 +88,6 @@ export async function POST(req: NextRequest) {
       await execute("UPDATE portfolio SET amount = ?, updated_at = NOW() WHERE portfolio_id = ?", [remaining, fromHolding.portfolio_id]);
     }
 
-    // Add or update the destination holding
     const [toHolding] = await queryRows<PortfolioHolding>(
       "SELECT portfolio_id, amount FROM portfolio WHERE user_id = ? AND coin_id = ? LIMIT 1",
       [auth.user_id, to_coin_id]
