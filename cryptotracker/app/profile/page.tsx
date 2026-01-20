@@ -48,10 +48,33 @@ export default function ProfilePage() {
   const [currMessage, setCurrMessage] = useState<string | null>(null);
   const [currSubmitting, setCurrSubmitting] = useState(false);
 
+  type Transaction = {
+    transaction_id: number;
+    user_id?: number;
+    transaction_type: string;
+    coin_id: string;
+    notes?: string;
+    created_at?: string;
+    updated_at?: string;
+  };
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [tLoading, setTLoading] = useState(false);
+  const [tError, setTError] = useState<string | null>(null);
+
   useEffect(() => {
     async function load() {
       setLoading(true);
       setError(null);
+      
+      // First, check localStorage for user preferences
+      let localUser: User | null = null;
+      try {
+        const stored = localStorage.getItem("user");
+        if (stored) {
+          localUser = JSON.parse(stored);
+        }
+      } catch {}
+      
       try {
         const res = await fetch("/api/auth/me", {
           method: "GET",
@@ -71,7 +94,23 @@ export default function ProfilePage() {
         }
 
         const data = await res.json();
-        setUser(data.user ?? null);
+        let userData = data.user ?? null;
+        
+        // Merge localStorage preferences with API data (localStorage takes priority for p_currency and p_language)
+        if (userData && localUser) {
+          userData = {
+            ...userData,
+            p_currency: localUser.p_currency || userData.p_currency,
+            p_language: localUser.p_language || userData.p_language,
+          };
+        }
+        
+        setUser(userData);
+        if (userData) {
+          try {
+            localStorage.setItem("user", JSON.stringify(userData));
+          } catch {}
+        }
       } catch (err: any) {
         setError("Network error");
       } finally {
@@ -113,6 +152,44 @@ export default function ProfilePage() {
     fetchUsers();
   }, [user]);
 
+  function formatDate(dt?: string) {
+    if (!dt) return "";
+    try {
+      const d = new Date(dt);
+      return d.toLocaleString();
+    } catch {
+      return dt;
+    }
+  }
+
+  useEffect(() => {
+    if (!user) return;
+    async function fetchTransactions() {
+      setTLoading(true);
+      setTError(null);
+      try {
+        const res = await fetch("/api/transactions", {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          setTError(data?.error || `Request failed (${res.status})`);
+          return;
+        }
+        const data = await res.json();
+        const list = Array.isArray(data.transactions) ? data.transactions : [];
+        setTransactions(list);
+      } catch (err) {
+        setTError("Network error");
+      } finally {
+        setTLoading(false);
+      }
+    }
+    fetchTransactions();
+  }, [user]);
+
   useEffect(() => {
     if (user?.p_language) setLangValue(user.p_language);
     if (user?.p_currency) setCurrValue(user.p_currency);
@@ -120,11 +197,11 @@ export default function ProfilePage() {
 
   function validatePasswordForm() {
     const e: Record<string, string> = {};
-    if (!currentPassword) e.currentPassword = "Zadajte aktuálne heslo";
-    if (!newPassword) e.newPassword = "Zadajte nové heslo";
+    if (!currentPassword) e.currentPassword = "Enter current password";
+    if (!newPassword) e.newPassword = "Enter new password";
     else {
-      if (newPassword.length < 8) e.newPassword = "Minimálna dĺžka 8 znakov";
-      if (!/[A-Z]/.test(newPassword)) e.newPassword = "Musí obsahovať aspoň jedno veľké písmeno";
+      if (newPassword.length < 8) e.newPassword = "Minimum length is 8 characters";
+      if (!/[A-Z]/.test(newPassword)) e.newPassword = "Must contain at least one uppercase letter";
     }
     setPwErrors(e);
     return Object.keys(e).length === 0;
@@ -144,15 +221,15 @@ export default function ProfilePage() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setPwMessage("Heslo úspešne zmenené");
+        setPwMessage("Password changed successfully");
         setCurrentPassword("");
         setNewPassword("");
         setShowPasswordForm(false);
       } else {
-        setPwMessage(data?.error || `Chyba (${res.status})`);
+        setPwMessage(data?.error || `Error (${res.status})`);
       }
     } catch (err) {
-      setPwMessage("Sieťová chyba");
+      setPwMessage("Network error");
     } finally {
       setPwSubmitting(false);
     }
@@ -177,7 +254,11 @@ export default function ProfilePage() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setLangMessage("Preferred language updated");
-        setUser((u) => (u ? { ...u, p_language: data?.p_language ?? code } : u));
+        const updatedUser = { ...user, p_language: data?.p_language ?? code };
+        setUser(updatedUser as User);
+        try {
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        } catch {}
       } else {
         setLangMessage(data?.error || `Error (${res.status})`);
       }
@@ -207,7 +288,11 @@ export default function ProfilePage() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setCurrMessage("Preferred currency updated");
-        setUser((u) => (u ? { ...u, p_currency: data?.p_currency ?? code } : u));
+        const updatedUser = { ...user, p_currency: data?.p_currency ?? code };
+        setUser(updatedUser as User);
+        try {
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        } catch {}
       } else {
         setCurrMessage(data?.error || `Error (${res.status})`);
       }
@@ -227,7 +312,6 @@ export default function ProfilePage() {
       });
       if (res.ok) {
         alert("User disabled successfully");
-        // Refresh the users list
         const usersRes = await fetch("/api/users", {
           method: "GET",
           cache: "no-store",
@@ -303,47 +387,49 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Header */}
-        <div className="bg-gray-900 rounded-lg p-8 border border-gray-800 mb-6">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
-              {initials}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            {/* Profile Header */}
+            <div className="bg-gray-900 rounded-lg p-8 border border-gray-800 mb-6">
+              <div className="flex items-center gap-6">
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+                  {initials}
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold">Profile</h1>
+                  <p className="text-gray-400 mt-1">{user.email}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">Profile</h1>
-              <p className="text-gray-400 mt-1">{user.email}</p>
-            </div>
-          </div>
-        </div>
 
-        {/* User Details */}
-        <div className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-6">
-          <h2 className="text-xl font-bold mb-4">Account Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gray-800 rounded-lg p-4">
-              <div className="text-gray-400 text-sm mb-1">User ID</div>
-              <div className="text-white font-medium">{user.user_id}</div>
+            {/* User Details */}
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-6">
+              <h2 className="text-xl font-bold mb-4">Account Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <div className="text-gray-400 text-sm mb-1">User ID</div>
+                  <div className="text-white font-medium">{user.user_id}</div>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <div className="text-gray-400 text-sm mb-1">Role</div>
+                  <div className="text-white font-medium capitalize">{user.role}</div>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <div className="text-gray-400 text-sm mb-1">Language</div>
+                  <div className="text-white font-medium">{user.p_language ?? "en"}</div>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <div className="text-gray-400 text-sm mb-1">Currency</div>
+                  <div className="text-white font-medium">{user.p_currency ?? "USD"}</div>
+                </div>
+              </div>
             </div>
-            <div className="bg-gray-800 rounded-lg p-4">
-              <div className="text-gray-400 text-sm mb-1">Role</div>
-              <div className="text-white font-medium capitalize">{user.role}</div>
-            </div>
-            <div className="bg-gray-800 rounded-lg p-4">
-              <div className="text-gray-400 text-sm mb-1">Language</div>
-              <div className="text-white font-medium">{user.p_language ?? "en"}</div>
-            </div>
-            <div className="bg-gray-800 rounded-lg p-4">
-              <div className="text-gray-400 text-sm mb-1">Currency</div>
-              <div className="text-white font-medium">{user.p_currency ?? "USD"}</div>
-            </div>
-          </div>
-        </div>
 
-        {/* Actions */}
-        <div className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-6">
-          <h2 className="text-xl font-bold mb-4">Account Actions</h2>
-          <div className="flex flex-wrap gap-4">
+            {/* Actions */}
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-6">
+              <h2 className="text-xl font-bold mb-4">Account Actions</h2>
+              <div className="flex flex-wrap gap-4">
             <button
               onClick={() => {
                 setShowPasswordForm((s) => !s);
@@ -625,6 +711,34 @@ export default function ProfilePage() {
             )}
           </div>
         )}
+          </div>
+          <div className="space-y-6">
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <h2 className="text-xl font-bold mb-4">Recent Transactions</h2>
+              {tLoading && <div className="text-gray-400">Loading transactions...</div>}
+              {tError && <div className="text-red-400">{tError}</div>}
+              {!tLoading && !tError && (
+                transactions.length ? (
+                  <ul className="divide-y divide-gray-800">
+                    {transactions.map((t) => (
+                      <li key={t.transaction_id} className="py-3">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium capitalize">{t.transaction_type} {t.coin_id}</div>
+                          <div className="text-sm text-gray-400">{formatDate(t.created_at)}</div>
+                        </div>
+                        {t.notes && (
+                          <div className="text-sm text-gray-300 mt-1 break-words">{t.notes}</div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-gray-400">No transactions yet</div>
+                )
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
