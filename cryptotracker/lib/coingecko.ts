@@ -11,12 +11,12 @@ async function coinGeckoRequest<T>(
 ): Promise<T> {
   const url = new URL(`${CG_API_BASE}${endpoint}`);
   
-  // Add API key to params if available
+  
   if (CG_API_KEY) {
     url.searchParams.append("x_cg_demo_api_key", CG_API_KEY);
   }
   
-  // Add additional params
+  
   if (options?.params) {
     Object.entries(options.params).forEach(([key, value]) => {
       url.searchParams.append(key, String(value));
@@ -27,7 +27,7 @@ async function coinGeckoRequest<T>(
     headers: {
       Accept: "application/json",
     },
-    next: { revalidate: 60 }, // Cache for 60 seconds
+    next: { revalidate: 60 },
   });
 
   if (!response.ok) {
@@ -118,12 +118,12 @@ export interface SimplePriceData {
   };
 }
 
-// Get list of all coins
+
 export async function getCoinsList(): Promise<Coin[]> {
   return coinGeckoRequest<Coin[]>("/coins/list");
 }
 
-// Get coin market data (top coins by market cap)
+
 export async function getCoinsMarkets(
   vsCurrency: string = "usd",
   perPage: number = 100,
@@ -141,7 +141,7 @@ export async function getCoinsMarkets(
   });
 }
 
-// Get detailed information about a specific coin
+
 export async function getCoinDetails(
   coinId: string,
   localization: boolean = false
@@ -158,14 +158,14 @@ export async function getCoinDetails(
   });
 }
 
-// Search for coins
+
 export async function searchCoins(query: string): Promise<SearchResult> {
   return coinGeckoRequest<SearchResult>("/search", {
     params: { query },
   });
 }
 
-// Get simple price data for multiple coins
+
 export async function getSimplePrice(
   coinIds: string[],
   vsCurrencies: string[] = ["usd"],
@@ -184,12 +184,12 @@ export async function getSimplePrice(
   });
 }
 
-// Get supported vs currencies
+
 export async function getSupportedVsCurrencies(): Promise<string[]> {
   return coinGeckoRequest<string[]>("/simple/supported_vs_currencies");
 }
 
-// Get trending coins
+
 export async function getTrendingCoins(): Promise<any> {
   return coinGeckoRequest("/search/trending");
 }
