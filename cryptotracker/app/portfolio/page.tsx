@@ -27,6 +27,18 @@ type MeResponse = {
   };
 };
 
+type TransactionPayload = {
+  transaction_type: "buy" | "sell" | "swap";
+  coin_id: string;
+  amount: number;
+  price_usd?: number | null;
+  notes?: string | null;
+  to_coin_id?: string | null;
+  to_amount?: number | null;
+  to_price_usd?: number | null;
+  total_value_usd?: number | null;
+};
+
 export default function PortfolioPage() {
   const router = useRouter();
   const [me, setMe] = useState<MeResponse | null>(null);
@@ -34,6 +46,7 @@ export default function PortfolioPage() {
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userCurrency, setUserCurrency] = useState("usd");
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedCoinId, setSelectedCoinId] = useState("");
   const [formData, setFormData] = useState({
@@ -51,6 +64,27 @@ export default function PortfolioPage() {
   const [swapEstimate, setSwapEstimate] = useState<number | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
   const [swapping, setSwapping] = useState(false);
+  const [showSellModal, setShowSellModal] = useState(false);
+  const [sellHolding, setSellHolding] = useState<Holding | null>(null);
+  const [sellAmount, setSellAmount] = useState("");
+  const [sellError, setSellError] = useState<string | null>(null);
+  const [selling, setSelling] = useState(false);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // Load currency from localStorage immediately
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const userData = JSON.parse(stored);
+        const code = (userData?.p_currency ?? "USD").toLowerCase();
+        setUserCurrency(code);
+      }
+    } catch {
+      setUserCurrency("usd");
+    }
+  }, []);
 
   // Fetch auth + portfolio
   useEffect(() => {
@@ -81,7 +115,7 @@ export default function PortfolioPage() {
         setHoldings(holdingsList);
 
         // Fetch prices for unique coins
-        const currency = (meData.user?.p_currency || "USD").toLowerCase();
+        const currency = userCurrency || (meData.user?.p_currency || "USD").toLowerCase();
         const coinIds = Array.from(new Set(holdingsList.map(h => h.coin_id)));
         const priceEntries: Array<[string, number]> = [];
         for (const cid of coinIds) {
@@ -105,10 +139,34 @@ export default function PortfolioPage() {
     load();
   }, [router]);
 
+  // Refresh prices when currency changes
+  useEffect(() => {
+    if (!holdings.length || !userCurrency) return;
+    
+    const refreshPrices = async () => {
+      const coinIds = Array.from(new Set(holdings.map(h => h.coin_id)));
+      const priceEntries: Array<[string, number]> = [];
+      for (const cid of coinIds) {
+        try {
+          const pr = await fetch(`/api/coins/${cid}/price?vs_currencies=${userCurrency}`);
+          if (!pr.ok) continue;
+          const pdata = await pr.json();
+          const val = pdata?.data?.[userCurrency];
+          if (typeof val === "number") {
+            priceEntries.push([cid, val]);
+          }
+        } catch {}
+      }
+      setPrices(Object.fromEntries(priceEntries));
+    };
+    
+    refreshPrices();
+  }, [userCurrency, holdings]);
+
   const ensurePrice = async (coinId: string): Promise<number | null> => {
     if (!coinId) return null;
     if (prices[coinId] != null) return prices[coinId];
-    const currency = (me?.user?.p_currency || "USD").toLowerCase();
+    const currency = userCurrency || "usd";
     try {
       const pr = await fetch(`/api/coins/${coinId}/price?vs_currencies=${currency}`);
       if (!pr.ok) return null;
@@ -120,6 +178,42 @@ export default function PortfolioPage() {
       }
     } catch {}
     return null;
+  };
+
+  const fetchPrice = async (coinId: string, currency?: string): Promise<number | null> => {
+    if (!coinId) return null;
+    const curr = currency || userCurrency || "usd";
+    try {
+      const pr = await fetch(`/api/coins/${coinId}/price?vs_currencies=${curr}`);
+      if (!pr.ok) return null;
+      const pdata = await pr.json();
+      const val = pdata?.data?.[curr];
+      if (typeof val === "number") return val;
+    } catch {}
+    return null;
+  };
+
+  const addTransaction = async (payload: TransactionPayload) => {
+    try {
+      const endpoints = ["/api/transactions", "/api/transactions/addTransaction"];
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(payload),
+          });
+          if (res.ok) return;
+          const msg = await res.text().catch(() => "");
+          console.warn(`Failed to record transaction via ${url}`, msg);
+        } catch (innerErr) {
+          console.warn(`Error calling ${url}`, innerErr);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to record transaction", err);
+    }
   };
 
   const reloadPortfolio = async () => {
@@ -137,7 +231,7 @@ export default function PortfolioPage() {
     setSelectedCoinId(coinId);
     
     // Fetch current price and set it as default purchase price
-    const currency = (me?.user?.p_currency || "USD").toLowerCase();
+    const currency = userCurrency || "usd";
     try {
       const pr = await fetch(`/api/coins/${coinId}/price?vs_currencies=${currency}`);
       if (pr.ok) {
@@ -158,7 +252,9 @@ export default function PortfolioPage() {
       setAddError("Please search and select a coin");
       return;
     }
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+    const amountNum = parseFloat(formData.amount);
+    const noteVal = formData.notes ? formData.notes : null;
+    if (!formData.amount || amountNum <= 0) {
       setAddError("Amount must be greater than 0");
       return;
     }
@@ -167,19 +263,19 @@ export default function PortfolioPage() {
     setAddError(null);
 
     try {
+      const purchasePriceNum = formData.purchase_price ? parseFloat(formData.purchase_price) : null;
       const res = await fetch("/api/portfolio/addCoin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
           coin_id: selectedCoinId,
-          amount: parseFloat(formData.amount),
-          purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
+          amount: amountNum,
+          purchase_price: purchasePriceNum,
           purchase_date: formData.purchase_date || null,
-          notes: formData.notes || null,
+          notes: noteVal,
         }),
       });
-
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setAddError(data?.error || "Failed to add coin");
@@ -190,9 +286,18 @@ export default function PortfolioPage() {
       setShowAddModal(false);
       setSelectedCoinId("");
       setFormData({ amount: "", purchase_price: "", purchase_date: new Date().toISOString().split('T')[0], notes: "" });
+      const price = await fetchPrice(selectedCoinId);
+      await addTransaction({
+        transaction_type: "buy",
+        coin_id: selectedCoinId,
+        amount: amountNum,
+        price_usd: price,
+        total_value_usd: price != null ? amountNum * price : null,
+        notes: noteVal,
+      });
       
       const holdingsList = await reloadPortfolio();
-      const currency = (me?.user?.p_currency || "USD").toLowerCase();
+      const currency = userCurrency || "usd";
       if (selectedCoinId && !prices[selectedCoinId]) {
         try {
           const pr = await fetch(`/api/coins/${selectedCoinId}/price?vs_currencies=${currency}`);
@@ -219,6 +324,13 @@ export default function PortfolioPage() {
     setSwapEstimate(null);
     setSwapError(null);
     setShowSwapModal(true);
+  };
+
+  const handleOpenSell = (holding: Holding) => {
+    setSellHolding(holding);
+    setSellAmount("");
+    setSellError(null);
+    setShowSellModal(true);
   };
 
   const updateSwapEstimate = async (amountStr: string, toCoin?: string) => {
@@ -276,7 +388,7 @@ export default function PortfolioPage() {
           from_coin_id: swapFromHolding.coin_id,
           to_coin_id: swapToCoinId,
           amount: amountNum,
-          vs_currency: (me?.user?.p_currency || "USD").toLowerCase(),
+          vs_currency: userCurrency || "usd",
         }),
       });
 
@@ -295,6 +407,23 @@ export default function PortfolioPage() {
       await ensurePrice(swapFromHolding.coin_id);
       await ensurePrice(swapToCoinId);
 
+      const [fromPrice, toPrice] = await Promise.all([
+        fetchPrice(swapFromHolding.coin_id),
+        fetchPrice(swapToCoinId),
+      ]);
+      const receiveAmount = typeof data?.receive_amount === "number" ? data.receive_amount : swapEstimate ?? null;
+      const totalValue = fromPrice != null ? amountNum * fromPrice : null;
+      await addTransaction({
+        transaction_type: "swap",
+        coin_id: swapFromHolding.coin_id,
+        amount: amountNum,
+        price_usd: fromPrice,
+        to_coin_id: swapToCoinId,
+        to_amount: receiveAmount,
+        to_price_usd: toPrice,
+        total_value_usd: totalValue,
+      });
+
       setShowSwapModal(false);
       setSwapFromHolding(null);
       setSwapToCoinId("");
@@ -307,8 +436,75 @@ export default function PortfolioPage() {
     }
   };
 
+  const handleSellSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sellHolding) return;
+    const amountNum = parseFloat(sellAmount);
+    const available = parseFloat(sellHolding.amount);
+
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setSellError("Enter a valid amount to sell");
+      return;
+    }
+    if (amountNum > available) {
+      setSellError("You cannot sell more than you hold");
+      return;
+    }
+
+    setSelling(true);
+    setSellError(null);
+    try {
+      if (amountNum === available) {
+        // delete holding when fully sold
+        const res = await fetch("/api/portfolio/deleteCoin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ coin_id: sellHolding.coin_id }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          setSellError(data?.error || "Failed to sell");
+          return;
+        }
+      } else {
+        const newAmount = available - amountNum;
+        const res = await fetch("/api/portfolio/updateCoin", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ coin_id: sellHolding.coin_id, amount: newAmount }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          setSellError(data?.error || "Failed to sell");
+          return;
+        }
+      }
+
+      const price = await fetchPrice(sellHolding.coin_id);
+      await addTransaction({
+        transaction_type: "sell",
+        coin_id: sellHolding.coin_id,
+        amount: amountNum,
+        price_usd: price,
+        total_value_usd: price != null ? amountNum * price : null,
+      });
+
+      await reloadPortfolio();
+      setShowSellModal(false);
+      setSellHolding(null);
+      setSellAmount("");
+      setSellError(null);
+    } catch (err) {
+      setSellError("Network error");
+    } finally {
+      setSelling(false);
+    }
+  };
+
   const rows = useMemo(() => {
-    return holdings.map((h) => {
+    let data = holdings.map((h) => {
       const amountNum = parseFloat(h.amount);
       const currentPrice = prices[h.coin_id] ?? null;
       const value = currentPrice ? amountNum * currentPrice : null;
@@ -317,7 +513,53 @@ export default function PortfolioPage() {
       const pnlPct = value != null && costBasis != null && costBasis > 0 && pnl != null ? (pnl / costBasis) * 100 : null;
       return { h, amountNum, currentPrice, value, costBasis, pnl, pnlPct };
     });
-  }, [holdings, prices]);
+
+    if (sortColumn) {
+      data.sort((a, b) => {
+        let aVal: any;
+        let bVal: any;
+
+        switch (sortColumn) {
+          case 'coin':
+            aVal = a.h.coin_id;
+            bVal = b.h.coin_id;
+            break;
+          case 'amount':
+            aVal = a.amountNum;
+            bVal = b.amountNum;
+            break;
+          case 'purchase_price':
+            aVal = a.h.purchase_price ?? -Infinity;
+            bVal = b.h.purchase_price ?? -Infinity;
+            break;
+          case 'current_price':
+            aVal = a.currentPrice ?? -Infinity;
+            bVal = b.currentPrice ?? -Infinity;
+            break;
+          case 'value':
+            aVal = a.value ?? -Infinity;
+            bVal = b.value ?? -Infinity;
+            break;
+          case 'pnl':
+            aVal = a.pnl ?? -Infinity;
+            bVal = b.pnl ?? -Infinity;
+            break;
+          case 'date':
+            aVal = a.h.purchase_date ? new Date(a.h.purchase_date).getTime() : -Infinity;
+            bVal = b.h.purchase_date ? new Date(b.h.purchase_date).getTime() : -Infinity;
+            break;
+          default:
+            return 0;
+        }
+
+        if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return data;
+  }, [holdings, prices, sortColumn, sortDirection]);
 
   const totals = useMemo(() => {
     const totalValue = rows.reduce((sum, r) => sum + (r.value ?? 0), 0);
@@ -326,6 +568,34 @@ export default function PortfolioPage() {
     const totalPnlPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : null;
     return { totalValue, totalCost, totalPnl, totalPnlPct };
   }, [rows]);
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortColumn !== column) {
+      return (
+        <svg className="w-4 h-4 opacity-0 group-hover:opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+    return sortDirection === 'asc' ? (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    ) : (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    );
+  };
 
   if (loading) {
     return (
@@ -428,7 +698,7 @@ export default function PortfolioPage() {
     );
   }
 
-  const currency = (me?.user?.p_currency || "USD").toUpperCase();
+  const currency = userCurrency.toUpperCase();
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -480,13 +750,48 @@ export default function PortfolioPage() {
             <table className="w-full">
               <thead className="bg-gray-800/50 border-b border-gray-700">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Coin</th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Purchase Price</th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Current Price</th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Value</th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">P/L</th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Date</th>
+                  <th onClick={() => handleSort('coin')} className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700/50 transition group">
+                    <div className="flex items-center gap-2">
+                      Coin
+                      <SortIcon column="coin" />
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('amount')} className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700/50 transition group">
+                    <div className="flex items-center justify-end gap-2">
+                      Amount
+                      <SortIcon column="amount" />
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('purchase_price')} className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700/50 transition group">
+                    <div className="flex items-center justify-end gap-2">
+                      Purchase Price
+                      <SortIcon column="purchase_price" />
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('current_price')} className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700/50 transition group">
+                    <div className="flex items-center justify-end gap-2">
+                      Current Price
+                      <SortIcon column="current_price" />
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('value')} className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700/50 transition group">
+                    <div className="flex items-center justify-end gap-2">
+                      Value
+                      <SortIcon column="value" />
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('pnl')} className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700/50 transition group">
+                    <div className="flex items-center justify-end gap-2">
+                      P/L
+                      <SortIcon column="pnl" />
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('date')} className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700/50 transition group">
+                    <div className="flex items-center justify-end gap-2">
+                      Date
+                      <SortIcon column="date" />
+                    </div>
+                  </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Notes</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -495,7 +800,7 @@ export default function PortfolioPage() {
                 {rows.map(({ h, amountNum, currentPrice, value, costBasis, pnl, pnlPct }) => (
                   <tr key={h.portfolio_id} className="hover:bg-gray-800/50 transition">
                     <td className="px-6 py-4 text-sm font-medium capitalize">{h.coin_id.replace(/-/g, " ")}</td>
-                    <td className="px-6 py-4 text-sm text-right font-mono">{amountNum.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-sm text-right font-mono">{amountNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</td>
                     <td className="px-6 py-4 text-sm text-right font-mono">{h.purchase_price != null ? Number(h.purchase_price).toLocaleString(undefined, { style: "currency", currency }) : "-"}</td>
                     <td className="px-6 py-4 text-sm text-right font-mono">{currentPrice != null ? currentPrice.toLocaleString(undefined, { style: "currency", currency }) : "-"}</td>
                     <td className="px-6 py-4 text-sm text-right font-mono font-semibold">{value != null ? value.toLocaleString(undefined, { style: "currency", currency }) : "-"}</td>
@@ -503,12 +808,20 @@ export default function PortfolioPage() {
                     <td className="px-6 py-4 text-sm text-right text-gray-400">{h.purchase_date ? new Date(h.purchase_date).toLocaleDateString() : "-"}</td>
                     <td className="px-6 py-4 text-sm text-gray-400">{h.notes || ""}</td>
                     <td className="px-6 py-4 text-sm text-left">
-                      <button
-                        onClick={() => handleOpenSwap(h)}
-                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-semibold transition shadow-md shadow-blue-900/40"
-                      >
-                        Swap
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleOpenSwap(h)}
+                          className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-semibold transition shadow-md shadow-blue-900/40"
+                        >
+                          Swap
+                        </button>
+                        <button
+                          onClick={() => handleOpenSell(h)}
+                          className="px-3 py-2 bg-amber-600 hover:bg-amber-700 rounded-lg text-white text-sm font-semibold transition shadow-md shadow-amber-900/40"
+                        >
+                          Sell
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -588,7 +901,7 @@ export default function PortfolioPage() {
 
                 {swapEstimate != null && swapToCoinId && (
                   <div className="px-4 py-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-300">
-                    Estimated receive: <span className="font-semibold">{swapEstimate.toLocaleString()} {swapToCoinId.replace(/-/g, " ")}</span> at current prices
+                    Estimated receive: <span className="font-semibold">{swapEstimate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })} {swapToCoinId.replace(/-/g, " ")}</span> at current prices
                   </div>
                 )}
 
@@ -633,6 +946,104 @@ export default function PortfolioPage() {
                       setSwapAmount("");
                       setSwapEstimate(null);
                       setSwapError(null);
+                    }}
+                    className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Sell Modal */}
+        {showSellModal && sellHolding && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-gray-700 shadow-2xl w-full max-w-lg animate-in fade-in zoom-in duration-200">
+              <div className="p-6 border-b border-gray-700 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">Sell Holdings</h2>
+                  <p className="text-gray-400 text-sm mt-1">{sellHolding.coin_id.replace(/-/g, " ")} • Avail: {parseFloat(sellHolding.amount).toLocaleString()}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowSellModal(false);
+                    setSellHolding(null);
+                    setSellAmount("");
+                    setSellError(null);
+                  }}
+                  className="text-gray-400 hover:text-white transition"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleSellSubmit} className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Amount to sell</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={sellAmount}
+                      onChange={(e) => setSellAmount(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition"
+                      placeholder="0.00"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSellAmount(sellHolding.amount)}
+                      className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold transition whitespace-nowrap"
+                    >
+                      Sell All
+                    </button>
+                  </div>
+                  <p className="text-gray-400 text-xs mt-1">Available: {parseFloat(sellHolding.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</p>
+                </div>
+
+                {sellError && (
+                  <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 flex items-center gap-2">
+                    <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    {sellError}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={selling}
+                    className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg disabled:shadow-none transition-all flex items-center justify-center gap-2"
+                  >
+                    {selling ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Selling...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-3-3" />
+                        </svg>
+                        Sell now
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSellModal(false);
+                      setSellHolding(null);
+                      setSellAmount("");
+                      setSellError(null);
                     }}
                     className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition"
                   >
