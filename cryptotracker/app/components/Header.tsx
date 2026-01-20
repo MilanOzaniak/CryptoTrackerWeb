@@ -64,20 +64,22 @@ export default function Header() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8 flex-shrink-0">
-            <Link
-              href="/profile"
-              className="text-gray-300 hover:text-white transition font-medium"
-            >
-              Profile
-            </Link>
-            <Link
-              href="/portfolio"
-              className="text-gray-300 hover:text-white transition font-medium"
-            >
-              Portfolio
-            </Link>
-          </div>
+          {!loading && isLoggedIn && (
+            <div className="hidden md:flex items-center space-x-8 flex-shrink-0">
+              <Link
+                href="/profile"
+                className="text-gray-300 hover:text-white transition font-medium"
+              >
+                Profile
+              </Link>
+              <Link
+                href="/portfolio"
+                className="text-gray-300 hover:text-white transition font-medium"
+              >
+                Portfolio
+              </Link>
+            </div>
+          )}
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
@@ -131,19 +133,22 @@ export default function Header() {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden pb-4 border-t border-gray-800">
-
-            <Link
-              href="/profile"
-              className="block px-4 py-2 text-gray-300 hover:bg-gray-800 rounded"
-            >
-              Profile
-            </Link>
-            <Link
-              href="/portfolio"
-              className="block px-4 py-2 text-gray-300 hover:bg-gray-800 rounded"
-            >
-              Portfolio
-            </Link>
+            {!loading && isLoggedIn && (
+              <>
+                <Link
+                  href="/profile"
+                  className="block px-4 py-2 text-gray-300 hover:bg-gray-800 rounded"
+                >
+                  Profile
+                </Link>
+                <Link
+                  href="/portfolio"
+                  className="block px-4 py-2 text-gray-300 hover:bg-gray-800 rounded"
+                >
+                  Portfolio
+                </Link>
+              </>
+            )}
             {!loading && !isLoggedIn && (
               <div className="border-t border-gray-800 mt-4 pt-4 px-4 space-y-2">
                 <Link
