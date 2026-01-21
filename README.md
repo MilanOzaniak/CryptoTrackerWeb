@@ -2,6 +2,11 @@
 
 Aplikácia na sledovanie a správu kryptomenového portfólia postavená na Next.js. Umožňuje používateľom spravovať, sledovať a vymieňať svoje kryptomeny s reálnymi cenami.
 
+## Použitie AI
+
+Pri tvorbe tohto projektu boli použité nástroje umelej inteligencie (AI). AI bola využitá najmä na konzultáciu riešení, návrh štruktúry projektu, komunikáciu s externými API, implementáciu výpočtov a návrh dizajnu používateľského rozhrania.
+
+
 ## Vlastnosti
 
 - **Autentifikácia používateľov**: Bezpečné prihlasovanie a registrácia s JWT tokenmi
