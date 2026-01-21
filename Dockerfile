@@ -17,6 +17,7 @@ COPY cryptotracker/ ./
 
 # Build Next.js
 RUN npm run build
+RUN mkdir -p .next/cache && chmod -R 777 .next/cache
 
 # ---- runner ----
 FROM node:20-alpine AS runner
