@@ -189,7 +189,10 @@ export async function getSupportedVsCurrencies(): Promise<string[]> {
   return coinGeckoRequest<string[]>("/simple/supported_vs_currencies");
 }
 
+export interface TrendingCoins {
+  coins: Array<{ item: { id: string; name: string; symbol: string; thumb: string } }>;
+}
 
-export async function getTrendingCoins(): Promise<any> {
-  return coinGeckoRequest("/search/trending");
+export async function getTrendingCoins(): Promise<TrendingCoins> {
+  return coinGeckoRequest<TrendingCoins>("/search/trending");
 }

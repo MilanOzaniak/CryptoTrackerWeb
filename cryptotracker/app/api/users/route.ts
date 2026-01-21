@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { queryRows, execute } from "@/lib/db";
+import { queryRows } from "@/lib/db";
 import jwt from "jsonwebtoken";
 
 export const dynamic = "force-dynamic";
@@ -15,10 +15,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let payload: any;
+    let payload: jwt.JwtPayload & { user_id?: number; role?: string };
     try {
-      payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret");
-    } catch (err) {
+      payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret") as jwt.JwtPayload & { user_id?: number; role?: string };
+    } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 

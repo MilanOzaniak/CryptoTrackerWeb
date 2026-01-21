@@ -25,10 +25,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let payload: any;
+    let payload: jwt.JwtPayload & { user_id?: number };
     try {
-      payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret");
-    } catch (err) {
+      payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret") as jwt.JwtPayload & { user_id?: number };
+    } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 

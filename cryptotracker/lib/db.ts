@@ -12,12 +12,12 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-export async function queryRows<T = any>(sql: string, params?: any[] | readonly any[]): Promise<T[]> {
+export async function queryRows<T = unknown>(sql: string, params?: unknown[] | readonly unknown[]): Promise<T[]> {
   const [rows] = await pool.query<RowDataPacket[]>(sql, params);
   return rows as unknown as T[];
 }
 
-export async function execute(sql: string, params?: any[] | readonly any[]): Promise<OkPacket> {
+export async function execute(sql: string, params?: unknown[] | readonly unknown[]): Promise<OkPacket> {
   const [result] = await pool.execute<OkPacket>(sql, params);
   return result as OkPacket;
 }

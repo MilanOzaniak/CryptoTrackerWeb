@@ -13,10 +13,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let payload: any;
+    let payload: jwt.JwtPayload & { user_id?: number; role?: string };
     try {
-      payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret");
-    } catch (err) {
+      payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret") as jwt.JwtPayload & { user_id?: number; role?: string };
+    } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 

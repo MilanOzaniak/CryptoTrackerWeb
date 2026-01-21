@@ -41,7 +41,7 @@ type TransactionPayload = {
 
 export default function PortfolioPage() {
   const router = useRouter();
-  const [me, setMe] = useState<MeResponse | null>(null);
+  // const [me, setMe] = useState<MeResponse | null>(null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -102,7 +102,6 @@ export default function PortfolioPage() {
           router.push("/login");
           return;
         }
-        setMe(meData);
 
         const portRes = await fetch("/api/portfolio", { credentials: "include", cache: "no-store" });
         if (!portRes.ok) {
@@ -296,7 +295,8 @@ export default function PortfolioPage() {
         notes: noteVal,
       });
       
-      const holdingsList = await reloadPortfolio();
+      // const holdingsList = await reloadPortfolio();
+      await reloadPortfolio();
       const currency = userCurrency || "usd";
       if (selectedCoinId && !prices[selectedCoinId]) {
         try {
@@ -516,8 +516,8 @@ export default function PortfolioPage() {
 
     if (sortColumn) {
       data.sort((a, b) => {
-        let aVal: any;
-        let bVal: any;
+        let aVal: number | string;
+        let bVal: number | string;
 
         switch (sortColumn) {
           case 'coin':
@@ -797,7 +797,7 @@ export default function PortfolioPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
-                {rows.map(({ h, amountNum, currentPrice, value, costBasis, pnl, pnlPct }) => (
+                {rows.map(({ h, amountNum, currentPrice, value, pnl, pnlPct }) => (
                   <tr key={h.portfolio_id} className="hover:bg-gray-800/50 transition">
                     <td className="px-6 py-4 text-sm font-medium capitalize">{h.coin_id.replace(/-/g, " ")}</td>
                     <td className="px-6 py-4 text-sm text-right font-mono">{amountNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</td>

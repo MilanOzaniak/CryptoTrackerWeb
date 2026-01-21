@@ -111,7 +111,7 @@ export default function ProfilePage() {
             localStorage.setItem("user", JSON.stringify(userData));
           } catch {}
         }
-      } catch (err: any) {
+      } catch {
         setError("Network error");
       } finally {
         setLoading(false);
@@ -142,7 +142,7 @@ export default function ProfilePage() {
 
         const data = await res.json();
         setUsers(Array.isArray(data.users) ? data.users : []);
-      } catch (err: any) {
+      } catch {
         setUsersError("Network error");
       } finally {
         setUsersLoading(false);

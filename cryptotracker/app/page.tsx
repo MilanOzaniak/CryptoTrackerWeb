@@ -670,12 +670,3 @@ export default function Home() {
   );
 }
 
-const linkButtonStyle: React.CSSProperties = {
-  padding: "8px 16px",
-  borderRadius: 6,
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "transparent",
-  color: "#eee",
-  cursor: "pointer",
-  fontWeight: 600,
-};

@@ -12,7 +12,7 @@ function getToken(req: NextRequest): string | undefined {
 function verifyToken(token?: string): { user_id: number; role: string; email?: string } | null {
   if (!token) return null;
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret") as any;
+    const payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret") as jwt.JwtPayload & { user_id?: number; role?: string; email?: string };
     const user_id = Number(payload?.user_id);
     const role = String(payload?.role || "user");
     if (!user_id || isNaN(user_id)) return null;
@@ -22,7 +22,6 @@ function verifyToken(token?: string): { user_id: number; role: string; email?: s
   }
 }
 
-// POST /api/transactions/addTransaction -> create new transaction entry (alias)
 export async function POST(req: NextRequest) {
   try {
     const token = getToken(req);

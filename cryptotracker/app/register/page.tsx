@@ -76,7 +76,7 @@ export default function RegisterPage() {
       } else {
         setServerError(data?.error || "Registration failed");
       }
-    } catch (err: any) {
+    } catch {
       setServerError("Network error");
     } finally {
       setSubmitting(false);

@@ -55,7 +55,7 @@ export default function LoginPage() {
       } else {
         setServerError(data?.error || "Login failed");
       }
-    } catch (err) {
+    } catch {
       setServerError("Network error");
     } finally {
       setSubmitting(false);
@@ -128,7 +128,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-gray-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-900 text-gray-400">Don't have an account?</span>
+              <span className="px-2 bg-gray-900 text-gray-400">Don&apos;t have an account?</span>
             </div>
           </div>
 

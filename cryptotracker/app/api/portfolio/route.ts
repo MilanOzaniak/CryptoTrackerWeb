@@ -14,7 +14,7 @@ function getToken(req: NextRequest): string | undefined {
 function verifyToken(token?: string): { user_id: number; role: string; email: string } | null {
 	if (!token) return null;
 	try {
-		const payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret") as any;
+		const payload = jwt.verify(token, process.env.JWT_SECRET ?? "dev-secret") as jwt.JwtPayload & { user_id?: number; role?: string; email?: string };
 		const user_id = Number(payload?.user_id);
 		if (!user_id || isNaN(user_id)) return null;
 		return { user_id, role: String(payload?.role || "user"), email: String(payload?.email || "") };
