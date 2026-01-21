@@ -2,8 +2,8 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copy only package manifests from the subfolder (monorepo layout)
-COPY cryptotracker/package.json cryptotracker/package-lock.json* ./
+# Copy package manifests
+COPY package.json package-lock.json* ./
 
 # If you use npm:
 RUN npm ci
@@ -13,7 +13,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY cryptotracker/ ./
+COPY . ./
 
 # Build Next.js
 RUN npm run build
