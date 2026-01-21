@@ -13,7 +13,7 @@ export default function Footer() {
             </div>
             <div>
               <p className="text-white font-semibold">CryptoTracker</p>
-              <p className="text-sm text-gray-400">Live prices, portfolio a watchlist na jednom mieste.</p>
+              <p className="text-sm text-gray-400">Live prices, portfolio and watchlist in one place.</p>
             </div>
           </div>
 
@@ -23,8 +23,8 @@ export default function Footer() {
         </div>
 
         <div className="mt-6 text-xs text-gray-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <p>© {year} CryptoTracker. Všetky práva vyhradené.</p>
-          <p className="text-gray-400">Aktualizované v reálnom čase z vašich API zdrojov.</p>
+          <p>© {year} CryptoTracker. All rights reserved.</p>
+          <p className="text-gray-400">Updated in real-time from your API sources.</p>
         </div>
       </div>
     </footer>
