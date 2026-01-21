@@ -228,7 +228,7 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
         </Link>
 
         {/* Coin Info Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex flex-wrap items-center gap-4 mb-8">
           <img
             src={coin.image.large}
             alt={coin.name}
@@ -239,7 +239,7 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
             <p className="text-gray-400 text-lg">{coin.symbol.toUpperCase()}</p>
           </div>
           {coin.market_data.market_cap_rank && (
-            <div className="ml-auto bg-gray-900 px-4 py-2 rounded-lg">
+            <div className="sm:ml-auto bg-gray-900 px-4 py-2 rounded-lg">
               <div className="text-gray-400 text-sm">Rank</div>
               <div className="text-2xl font-bold">#{coin.market_data.market_cap_rank}</div>
             </div>
@@ -248,7 +248,7 @@ export default function CoinPage({ params }: { params: Promise<{ id: string }> }
             <button
               onClick={handleAddToWatchlist}
               disabled={addingToWatchlist}
-              className="ml-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+              className="w-full sm:w-auto sm:ml-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
             >
               {addingToWatchlist ? (
                 <>
