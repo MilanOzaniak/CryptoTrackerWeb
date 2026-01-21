@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { execute } from "@/lib/db";
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const tokenFromCookie = req.cookies.get("token")?.value;
     const authHeader = req.headers.get("authorization");
@@ -20,7 +20,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const requestedUserId = Number(params.id);
+    const { id: idParam } = await params;
+    const requestedUserId = Number(idParam);
     if (!requestedUserId || isNaN(requestedUserId)) {
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }

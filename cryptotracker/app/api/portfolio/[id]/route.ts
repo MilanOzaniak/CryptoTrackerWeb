@@ -23,13 +23,14 @@ function verifyToken(token?: string): { user_id: number; role: string } | null {
 }
 
 // GET /api/portfolio/[id] -> fetch single holding (owner or admin)
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 	try {
 		const token = getToken(req);
 		const auth = verifyToken(token);
 		if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-		const id = Number(params.id);
+		const { id: idParam } = await params;
+		const id = Number(idParam);
 		if (!id || isNaN(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
 		const rows = await queryRows<PortfolioHolding>(
@@ -48,13 +49,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // PUT /api/portfolio/[id] -> update holding (owner or admin)
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 	try {
 		const token = getToken(req);
 		const auth = verifyToken(token);
 		if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-		const id = Number(params.id);
+		const { id: idParam } = await params;
+		const id = Number(idParam);
 		if (!id || isNaN(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
 		const rows = await queryRows<PortfolioHolding>(
@@ -120,13 +122,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE /api/portfolio/[id] -> delete holding (owner or admin)
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 	try {
 		const token = getToken(req);
 		const auth = verifyToken(token);
 		if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-		const id = Number(params.id);
+		const { id: idParam } = await params;
+		const id = Number(idParam);
 		if (!id || isNaN(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
 		const rows = await queryRows<PortfolioHolding>(

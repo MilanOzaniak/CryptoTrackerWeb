@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { execute } from "@/lib/db";
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const tokenFromCookie = req.cookies.get("token")?.value;
         const authHeader = req.headers.get("authorization");
@@ -24,7 +24,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const userId = Number(params.id);
+        const { id: idParam } = await params;
+        const userId = Number(idParam);
         if (!userId || isNaN(userId)) {
             return NextResponse.json({ error: "Invalid id" }, { status: 400 });
         }
