@@ -12,12 +12,12 @@ export async function GET(req: NextRequest) {
     let payload;
     try {
       payload = jwt.verify(token, secret);
-    } catch (err) {
+    } catch {
       return NextResponse.json({ loggedIn: false }, { status: 200 });
     }
 
     return NextResponse.json({ loggedIn: true, user: payload }, { status: 200 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ loggedIn: false }, { status: 500 });
   }
 }

@@ -56,8 +56,8 @@ export async function POST(req: NextRequest) {
       [auth.user_id, trimmed]
     );
 
-    return NextResponse.json({ deleted: (result as any).affectedRows ?? 0, coin_id: trimmed }, { status: 200 });
-  } catch (err) {
+    return NextResponse.json({ deleted: result.affectedRows ?? 0, coin_id: trimmed }, { status: 200 });
+  } catch {
     return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

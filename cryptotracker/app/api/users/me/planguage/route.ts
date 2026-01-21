@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 		await execute("UPDATE users SET p_language = ? WHERE user_id = ?", [normalized, userId]);
 
 		return NextResponse.json({ message: "Preferred language updated", p_language: normalized }, { status: 200 });
-	} catch (err) {
+	} catch {
 		return NextResponse.json({ error: "server error" }, { status: 500 });
 	}
 }

@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 		await execute("UPDATE users SET p_currency = ? WHERE user_id = ?", [normalized, userId]);
 
 		return NextResponse.json({ message: "Preferred currency updated", p_currency: normalized }, { status: 200 });
-	} catch (err) {
+	} catch {
 		return NextResponse.json({ error: "server error" }, { status: 500 });
 	}
 }

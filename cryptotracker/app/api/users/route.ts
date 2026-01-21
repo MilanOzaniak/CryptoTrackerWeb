@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       "SELECT user_id, email, role, p_language, p_currency, created_at FROM users where role != 'admin'",
     );
     return NextResponse.json({ users }, { status: 200 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

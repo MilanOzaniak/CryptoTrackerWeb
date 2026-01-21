@@ -44,7 +44,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
 
     if (amount !== undefined) {
       const amtNum = Number(amount);
@@ -90,7 +90,7 @@ export async function PUT(req: NextRequest) {
     );
 
     return NextResponse.json({ updated: updated[0] ?? null }, { status: 200 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

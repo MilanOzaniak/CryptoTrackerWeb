@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       [auth.user_id, normalizedType, coin_id.trim(), noteVal]
     );
 
-    const insertedId = (result as any).insertId as number;
+    const insertedId = result.insertId as number;
     const rows = await queryRows(
       "SELECT transaction_id, user_id, transaction_type, coin_id, notes, created_at, updated_at FROM transactions WHERE transaction_id = ?",
       [insertedId]

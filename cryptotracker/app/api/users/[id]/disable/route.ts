@@ -47,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const res = NextResponse.json({ message: "Account disabled", userId: requestedUserId }, { status: 200 });
     
     return res;
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

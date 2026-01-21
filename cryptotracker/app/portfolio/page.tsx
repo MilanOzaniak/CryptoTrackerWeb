@@ -310,7 +310,7 @@ export default function PortfolioPage() {
           }
         } catch {}
       }
-    } catch (err) {
+    } catch {
       setAddError("Network error");
     } finally {
       setAdding(false);
@@ -429,7 +429,7 @@ export default function PortfolioPage() {
       setSwapToCoinId("");
       setSwapAmount("");
       setSwapEstimate(null);
-    } catch (err) {
+    } catch {
       setSwapError("Network error");
     } finally {
       setSwapping(false);
@@ -496,7 +496,7 @@ export default function PortfolioPage() {
       setSellHolding(null);
       setSellAmount("");
       setSellError(null);
-    } catch (err) {
+    } catch {
       setSellError("Network error");
     } finally {
       setSelling(false);
@@ -504,7 +504,7 @@ export default function PortfolioPage() {
   };
 
   const rows = useMemo(() => {
-    let data = holdings.map((h) => {
+    const data = holdings.map((h) => {
       const amountNum = parseFloat(h.amount);
       const currentPrice = prices[h.coin_id] ?? null;
       const value = currentPrice ? amountNum * currentPrice : null;

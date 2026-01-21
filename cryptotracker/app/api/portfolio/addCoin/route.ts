@@ -58,14 +58,14 @@ export async function POST(req: NextRequest) {
       [auth.user_id, coin_id.trim(), amtNum, priceNum, dateVal, notesVal]
     );
 
-    const insertedId = (result as any).insertId as number;
+    const insertedId = result.insertId as number;
     const rows = await queryRows<PortfolioHolding>(
       "SELECT portfolio_id, user_id, coin_id, amount, purchase_price, purchase_date, notes, created_at, updated_at FROM portfolio WHERE portfolio_id = ?",
       [insertedId]
     );
 
     return NextResponse.json({ created: rows[0] ?? null }, { status: 201 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

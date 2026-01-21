@@ -56,7 +56,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Watchlist item not found" }, { status: 404 });
     }
 
-    const item = existing[0] as any;
+    const item = existing[0] as { user_id: number };
     if (item.user_id !== auth.user_id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

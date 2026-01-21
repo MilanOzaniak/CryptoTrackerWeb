@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     await execute("UPDATE users SET password = ? WHERE user_id = ?", [newHashed, userId]);
 
     return NextResponse.json({ message: "Password updated" }, { status: 200 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

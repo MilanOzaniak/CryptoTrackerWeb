@@ -37,7 +37,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         await execute("DELETE FROM users WHERE user_id = ?", [userId]);
         
         return NextResponse.json({ message: "User deleted", userId }, { status: 200 });
-    } catch (err) {
+    } catch {
         return NextResponse.json({ error: "server error" }, { status: 500 });
     }
 }

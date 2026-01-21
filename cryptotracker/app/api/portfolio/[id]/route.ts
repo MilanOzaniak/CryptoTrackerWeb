@@ -43,7 +43,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 		}
 		return NextResponse.json({ holding }, { status: 200 });
-	} catch (err) {
+	} catch {
 		return NextResponse.json({ error: "server error" }, { status: 500 });
 	}
 }
@@ -73,7 +73,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 		const { coin_id, amount, purchase_price, purchase_date, notes } = body ?? {};
 
 		const fields: string[] = [];
-		const values: any[] = [];
+		const values: unknown[] = [];
 
 		if (coin_id && typeof coin_id === "string") {
 			fields.push("coin_id = ?");
@@ -116,7 +116,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 		);
 
 		return NextResponse.json({ updated: updated[0] ?? null }, { status: 200 });
-	} catch (err) {
+	} catch {
 		return NextResponse.json({ error: "server error" }, { status: 500 });
 	}
 }
@@ -144,7 +144,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
 		await execute("DELETE FROM portfolio WHERE portfolio_id = ?", [id]);
 		return NextResponse.json({ deleted: true, portfolio_id: id }, { status: 200 });
-	} catch (err) {
+	} catch {
 		return NextResponse.json({ error: "server error" }, { status: 500 });
 	}
 }

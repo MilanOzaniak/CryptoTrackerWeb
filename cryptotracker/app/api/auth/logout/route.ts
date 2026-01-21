@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   const res = NextResponse.json({ message: "Logged out" }, { status: 200 });
   // Clear the cookie by setting empty value and maxAge: 0
   res.cookies.set("token", "", {

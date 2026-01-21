@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "user not found" }, { status: 404 });
     }
     return NextResponse.json({ user: users[0] }, { status: 200 });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }
