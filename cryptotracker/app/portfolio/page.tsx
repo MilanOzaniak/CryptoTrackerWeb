@@ -162,6 +162,7 @@ export default function PortfolioPage() {
     refreshPrices();
   }, [userCurrency, holdings]);
 
+  // ziskanie ceny pre coin, ak uz mame cenu v state, tak ju vratime, inak fetchneme
   const ensurePrice = async (coinId: string): Promise<number | null> => {
     if (!coinId) return null;
     if (prices[coinId] != null) return prices[coinId];
@@ -179,6 +180,7 @@ export default function PortfolioPage() {
     return null;
   };
 
+  // fetch ceny pre coin
   const fetchPrice = async (coinId: string, currency?: string): Promise<number | null> => {
     if (!coinId) return null;
     const curr = currency || userCurrency || "usd";
@@ -192,6 +194,7 @@ export default function PortfolioPage() {
     return null;
   };
 
+  // pridanie transakcie, vola sa po pridani coinu, predaji alebo swape
   const addTransaction = async (payload: TransactionPayload) => {
     try {
       const endpoints = ["/api/transactions", "/api/transactions/addTransaction"];
@@ -215,6 +218,7 @@ export default function PortfolioPage() {
     }
   };
 
+  // reload portfolio data
   const reloadPortfolio = async () => {
     const portRes = await fetch("/api/portfolio", { credentials: "include", cache: "no-store" });
     if (portRes.ok) {
@@ -226,6 +230,7 @@ export default function PortfolioPage() {
     return holdings;
   };
 
+  // handle coin select from search bar in add modal
   const handleCoinSelect = async (coinId: string) => {
     setSelectedCoinId(coinId);
     
@@ -241,10 +246,11 @@ export default function PortfolioPage() {
         }
       }
     } catch {
-      // If price fetch fails, just leave the field empty
+
     }
   };
 
+  // 
   const handleAddCoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCoinId) {

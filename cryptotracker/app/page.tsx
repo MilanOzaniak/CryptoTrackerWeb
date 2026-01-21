@@ -61,6 +61,7 @@ export default function Home() {
   const [currencySymbol, setCurrencySymbol] = useState<string>("$");
   const [showGainers, setShowGainers] = useState<boolean>(true);
 
+  // pomocna funkcia na ziskanie symobolu meny €, $ atd
   function computeCurrencySymbol(code: string) {
     try {
       const formatted = (0).toLocaleString("en-US", { style: "currency", currency: code });
@@ -70,7 +71,9 @@ export default function Home() {
     }
   }
 
+
   useEffect(() => {
+    // načitame preferovanú menu používateľa z localStorage a zmenime všade
     const updateCurrency = () => {
       try {
         const stored = localStorage.getItem("user");
@@ -91,24 +94,28 @@ export default function Home() {
       }
     };
 
+    // hned ju spustime
     updateCurrency();
 
-    // Update currency when tab becomes visible (user returns from profile)
+    // updatneme menu pri zmene prekliknuti okna
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         updateCurrency();
       }
     };
 
+    // ked sa stranka dostane do focusu tak aktualizujeme
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("focus", updateCurrency);
     
+    // cleanneme listenery
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", updateCurrency);
     };
   }, []);
 
+  // fetch cien coinov. top coins, tredning coins, watchlist
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -128,13 +135,14 @@ export default function Home() {
           setMarketCapChange(3.2);
         }
 
+        // trending
         const trendingRes = await fetch("/api/coins/trending");
         if (trendingRes.ok) {
           const trendingData = await trendingRes.json();
           setTrending(trendingData.data?.coins || []);
         }
 
-        // Fetch watchlist
+        //  watchlist
         const watchlistRes = await fetch("/api/watchlist", {
           credentials: "include",
         });
@@ -157,6 +165,7 @@ export default function Home() {
     fetchData();
   }, [preferredCurrency]);
 
+  // fetch cien pre trending coiny
   useEffect(() => {
     const ids = trending.slice(0, 3).map((c) => c.item.id);
     if (!ids.length) {

@@ -11,18 +11,19 @@ async function coinGeckoRequest<T>(
 ): Promise<T> {
   const url = new URL(`${CG_API_BASE}${endpoint}`);
   
-  
+  // pridame kluc do query parametrov
   if (CG_API_KEY) {
     url.searchParams.append("x_cg_demo_api_key", CG_API_KEY);
   }
   
-  
+  // pridame ostatne query parametre
   if (options?.params) {
     Object.entries(options.params).forEach(([key, value]) => {
       url.searchParams.append(key, String(value));
     });
   }
 
+  // vykoname fetch poziadavku
   const response = await fetch(url.toString(), {
     headers: {
       Accept: "application/json",
@@ -30,6 +31,7 @@ async function coinGeckoRequest<T>(
     next: { revalidate: 60 },
   });
 
+  
   if (!response.ok) {
     throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
   }
@@ -123,7 +125,7 @@ export async function getCoinsList(): Promise<Coin[]> {
   return coinGeckoRequest<Coin[]>("/coins/list");
 }
 
-
+// Ziskanie trhovych dat pre coiny -- nepouzivam
 export async function getCoinsMarkets(
   vsCurrency: string = "usd",
   perPage: number = 100,
@@ -141,7 +143,7 @@ export async function getCoinsMarkets(
   });
 }
 
-
+// Ziskanie detailov o coine
 export async function getCoinDetails(
   coinId: string,
   localization: boolean = false
@@ -158,14 +160,14 @@ export async function getCoinDetails(
   });
 }
 
-
+// Hladanie coinov podla nazvu
 export async function searchCoins(query: string): Promise<SearchResult> {
   return coinGeckoRequest<SearchResult>("/search", {
     params: { query },
   });
 }
 
-
+// Ziskanie jednoduchych cien pre zadane coiny a meny
 export async function getSimplePrice(
   coinIds: string[],
   vsCurrencies: string[] = ["usd"],
